@@ -4,8 +4,8 @@ A small, self-contained team dashboard for the **HB38 Multiple Sclerosis** proje
 meeting minutes, action items, a project timeline, literature, resources,
 **file uploads**, and **email notifications**.
 
-Built as **pure Node.js with zero npm dependencies**, so it runs anywhere Node runs
-and starts instantly.
+Runs as a tiny Node.js server. Locally it uses plain files (zero setup); in the
+cloud it uses a free database so nothing is ever lost.
 
 ---
 
@@ -23,16 +23,17 @@ and starts instantly.
 
 ## 🚀 Run it on your own computer
 
-You only need **[Node.js](https://nodejs.org)** (the LTS version). Nothing else to install.
+You only need **[Node.js](https://nodejs.org)** (the LTS version).
 
 ```bash
+npm install        # installs one small package
 node server.js
 ```
 
 Then open **http://localhost:8000** and sign in.
 
-> Data is stored locally in `data.json` (workspace), `users.json` (accounts),
-> and the `uploads/` folder. This local copy is **only on your computer** — see
+> With no database configured, it stores everything in local files
+> (`data.json`, `users.json`, `uploads/`). This is your personal copy — see
 > "Local vs cloud" below.
 
 ### Handy commands
@@ -44,58 +45,40 @@ node server.js list-users                              # list all accounts
 
 ---
 
-## ☁️ Host it so the whole team can use it from anywhere
+## ☁️ Host it free (no credit card) — Render + Turso
 
-### Where to host — read this first
+Render's free tier has no permanent disk, so the app keeps its data in a free
+**Turso** database instead. Neither service needs a card.
 
-This app **saves data to files**, so it needs a host with **permanent storage**
-and a **long-running server**. That rules out serverless hosts:
+### Step A — create the database (Turso)
+1. Sign up at <https://turso.tech> (free, no card — sign in with GitHub)
+2. Create a database (any name, e.g. `ms-hb38`)
+3. Copy two values:
+   - the **Database URL** (looks like `libsql://ms-hb38-you.turso.io`)
+   - a **database token** (create one for the database)
 
-| Platform | Free | Auto-deploy on push | Keeps your data | Use it? |
-|----------|:----:|:-------------------:|:---------------:|:-------:|
-| **Fly.io** | ✅ (card required) | ✅ (via the included GitHub Action) | ✅ persistent volume | ✅ **Recommended** |
-| Render (free) | ✅ | ✅ | ❌ wiped on restart | ⚠️ data loss |
-| Vercel / Netlify | ✅ | ✅ | ❌ serverless, no disk | ❌ won't work |
-| Railway | trial | ✅ | ✅ | 💰 paid after trial |
+### Step B — deploy the app (Render)
+1. Sign up at <https://render.com> (free, no card — sign in with GitHub)
+2. **New → Blueprint** → connect the **MS-Dashboard** repo (Render reads `render.yaml`)
+3. When prompted, fill the environment variables:
+   | Variable | Value |
+   |----------|-------|
+   | `TURSO_URL` | the Turso Database URL |
+   | `TURSO_TOKEN` | the Turso token |
+   | `SIGNUP_CODE` | a shared code teammates type when signing up |
+   | `APP_URL` | your Render URL, e.g. `https://ms-hb38.onrender.com` |
+   | `BREVO_API_KEY` | *(optional — for email; leave blank to skip)* |
+4. Click **Apply / Create**. Your live site: **https://ms-hb38.onrender.com** 🎉
 
-### Deploy to Fly.io
-
-1. Install the Fly CLI → <https://fly.io/docs/flyctl/install/>
-2. `fly auth login`
-3. First time only — create the app + its persistent disk:
-   ```bash
-   fly apps create ms-hb38          # choose another name if this one is taken
-   fly volumes create ms_data --region bom --size 1
-   ```
-4. Add the secrets (email + signup code; Google Drive backup is optional):
-   ```bash
-   fly secrets set BREVO_API_KEY=xkeysib-....
-   fly secrets set SIGNUP_CODE=your-team-code
-   fly secrets set RCLONE_CONF_B64="$(base64 -w0 rclone.conf)"   # optional: Drive backups
-   ```
-5. Deploy:
-   ```bash
-   fly deploy
-   ```
-
-Your live site: **https://ms-hb38.fly.dev** 🎉
+> Free Render services **sleep after ~15 min idle**; the first visit after that
+> takes ~30–50s to wake, then it's fast. Your data is safe in Turso regardless.
 
 ---
 
 ## 🔁 Auto-deploy: your changes go live automatically
 
-This repo ships with a GitHub Action (`.github/workflows/deploy.yml`) that
-**redeploys the live site on every push to `main`**. Set it up once:
-
-1. Create a deploy token:
-   ```bash
-   fly tokens create deploy
-   ```
-2. On GitHub: **repo → Settings → Secrets and variables → Actions → New repository secret**
-   - Name: `FLY_API_TOKEN`
-   - Value: *(paste the token)*
-
-After that, your workflow is simply:
+Render watches the GitHub repo. With `autoDeploy: true` (already set in
+`render.yaml`), **every push to `main` redeploys the live site** — no extra setup:
 
 ```bash
 # edit code, test locally with `node server.js`, then:
@@ -104,7 +87,7 @@ git commit -m "my change"
 git push
 ```
 
-…and the live site updates itself within a minute. ✅
+…and the live site updates itself in a minute or two. ✅
 
 ---
 
@@ -112,30 +95,21 @@ git push
 
 | | Where data lives | Who sees it |
 |---|---|---|
-| **Local** (`localhost:8000`) | files on *your* computer | only you |
-| **Cloud** (`ms-hb38.fly.dev`) | Fly.io persistent volume | the whole team, anywhere |
+| **Local** (`localhost:8000`, no DB set) | files on *your* computer | only you |
+| **Cloud** (`…onrender.com`, Turso set) | the Turso database | the whole team, anywhere |
 
 Use **local** to develop and test; the **cloud** version is the real shared
 workspace. Push your changes to update the cloud version.
 
 ---
 
-## 💾 Backups
-
-When deployed with a Google Drive token (`RCLONE_CONF_B64`), the app tars up
-`data.json`, `users.json` and `uploads/` to **Google Drive every 6 hours** and
-keeps 30 days of history (`backup.sh`). Even without it, data is safe on Fly's
-persistent volume.
-
----
-
 ## 📁 Project layout
 
-| File | Purpose |
+| Path | Purpose |
 |------|---------|
-| `server.js` | Backend HTTP server + API (Node, no dependencies) |
+| `server.js` | Backend server + API (files locally, Turso database in the cloud) |
 | `MS WORKSPACE.html` | The entire dashboard UI (single file) |
-| `data.json` / `users.json` | Workspace content / accounts (passwords hashed) |
-| `uploads/` | Uploaded files |
-| `Dockerfile` · `fly.toml` · `entrypoint.sh` · `backup.sh` | Cloud deployment |
-| `.github/workflows/deploy.yml` | Auto-deploy to Fly.io on push |
+| `render.yaml` | Render deployment blueprint (auto-deploy) |
+| `package.json` | Node project + the one dependency (`@libsql/client`) |
+| `data.json` / `users.json` | Local-mode workspace / accounts (passwords hashed) |
+| `deploy-fly/` | Alternative Fly.io deployment (needs a card) — kept for the future |

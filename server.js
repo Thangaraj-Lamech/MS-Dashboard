@@ -22,11 +22,15 @@ const path   = require('path');
 const crypto = require('crypto');
 
 /* ------------------------------------------------------------
-   Where persistent data lives.
-   On Fly.io a volume is mounted at /data (see fly.toml); locally
-   it falls back to this folder. Everything the app must NOT lose
-   (workspace data, accounts, uploaded files, signing key) lives
-   under DATA_DIR so it survives restarts and redeploys.
+   Where persistent data lives — two backends, picked at startup:
+     • Locally (no TURSO_URL set): plain files in this folder.
+       Zero setup — just `node server.js`.
+     • In the cloud (TURSO_URL set, e.g. on Render): a Turso
+       (libSQL/SQLite) database, because hosts like Render have
+       NO permanent disk. Accounts, workspace and uploaded files
+       all live in the database and survive restarts/redeploys.
+   Everything goes through the async `store` interface below, so
+   the rest of the app doesn't care which backend is active.
    ------------------------------------------------------------ */
 const ROOT        = __dirname;
 const DATA_DIR    = process.env.DATA_DIR || ROOT;
@@ -37,20 +41,86 @@ const USERS_FILE  = path.join(DATA_DIR, 'users.json');
 const SECRET_FILE = path.join(DATA_DIR, 'secret.key');
 const UPLOAD_DIR  = path.join(DATA_DIR, 'uploads');
 
-try { fs.mkdirSync(UPLOAD_DIR, { recursive: true }); } catch (e) {}
-
 /* ---- email / signup / app config (all via env; safe defaults) ---- */
 const BREVO_API_KEY = process.env.BREVO_API_KEY || '';
 const MAIL_FROM     = process.env.MAIL_FROM     || 'brainsgbc@gmail.com';
 const MAIL_FROM_NAME= process.env.MAIL_FROM_NAME|| 'MS HB38 Workspace';
-const APP_URL       = process.env.APP_URL       || 'https://ms-hb38.fly.dev';
+const APP_URL       = process.env.APP_URL       || 'https://ms-hb38.onrender.com';
 // Optional shared code required to self-register. Empty string = open signup.
 const SIGNUP_CODE   = process.env.SIGNUP_CODE   || '';
+// Cloud database (Turso). When unset, the app uses local files instead.
+const TURSO_URL     = process.env.TURSO_URL   || process.env.TURSO_DATABASE_URL || '';
+const TURSO_TOKEN   = process.env.TURSO_TOKEN || process.env.TURSO_AUTH_TOKEN   || '';
 
-/* ---- signing secret (for login tokens) ---- */
+/* ============================================================
+   Storage backends. Both expose the same async interface:
+     init(), getKV(k), setKV(k,v), getSecret(), setSecret(buf),
+     putFile(id,name,mime,size,buf), getFile(id)
+   ============================================================ */
+const fileStore = {
+  kind: 'files',
+  _path(k){ return k === 'data' ? DATA_FILE : k === 'users' ? USERS_FILE : path.join(DATA_DIR, k + '.kv'); },
+  async init(){ try { fs.mkdirSync(UPLOAD_DIR, { recursive: true }); } catch (e) {} },
+  async getKV(k){ try { return fs.readFileSync(this._path(k), 'utf8'); } catch (e) { return null; } },
+  async setKV(k, v){ fs.writeFileSync(this._path(k), v); },
+  async getSecret(){ try { return fs.readFileSync(SECRET_FILE); } catch (e) { return null; } },
+  async setSecret(buf){ fs.writeFileSync(SECRET_FILE, buf); },
+  async putFile(id, name, mime, size, buf){ fs.writeFileSync(path.join(UPLOAD_DIR, id + '__' + name), buf); },
+  async getFile(id){
+    if (!/^[a-f0-9]{6,}$/.test(String(id || ''))) return null;
+    let f; try { f = fs.readdirSync(UPLOAD_DIR).find(x => x.startsWith(id + '__')); } catch (e) { return null; }
+    if (!f) return null;
+    const name = f.slice(id.length + 2);
+    return { name, mime: mimeFor(name), data: fs.readFileSync(path.join(UPLOAD_DIR, f)) };
+  }
+};
+
+let _db = null;
+function db(){
+  if (!_db) {
+    const { createClient } = require('@libsql/client');
+    _db = createClient({ url: TURSO_URL, authToken: TURSO_TOKEN || undefined });
+  }
+  return _db;
+}
+const dbStore = {
+  kind: 'turso',
+  async init(){
+    await db().execute("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT)");
+    await db().execute("CREATE TABLE IF NOT EXISTS files (id TEXT PRIMARY KEY, name TEXT, mime TEXT, size INTEGER, data BLOB)");
+  },
+  async getKV(k){
+    const r = await db().execute({ sql: "SELECT v FROM kv WHERE k = ?", args: [k] });
+    return r.rows.length ? r.rows[0].v : null;
+  },
+  async setKV(k, v){
+    await db().execute({ sql: "INSERT INTO kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", args: [k, v] });
+  },
+  async getSecret(){ const s = await this.getKV('secret'); return s ? Buffer.from(s, 'hex') : null; },
+  async setSecret(buf){ await this.setKV('secret', buf.toString('hex')); },
+  async putFile(id, name, mime, size, buf){
+    await db().execute({ sql: "INSERT INTO files (id, name, mime, size, data) VALUES (?, ?, ?, ?, ?)", args: [id, name, mime, size, buf] });
+  },
+  async getFile(id){
+    if (!/^[a-f0-9]{6,}$/.test(String(id || ''))) return null;
+    const r = await db().execute({ sql: "SELECT name, mime, data FROM files WHERE id = ?", args: [id] });
+    if (!r.rows.length) return null;
+    const row = r.rows[0];
+    let data = row.data;
+    if (!Buffer.isBuffer(data)) data = Buffer.from(data);   // libsql returns BLOB as ArrayBuffer/Uint8Array
+    return { name: row.name, mime: row.mime || mimeFor(row.name), data };
+  }
+};
+
+const store = TURSO_URL ? dbStore : fileStore;
+
+/* ---- signing secret (for login tokens); loaded from `store` at boot ---- */
 let SECRET;
-try { SECRET = fs.readFileSync(SECRET_FILE); }
-catch (e) { SECRET = crypto.randomBytes(32); fs.writeFileSync(SECRET_FILE, SECRET); }
+async function loadSecret(){
+  let s = await store.getSecret();
+  if (!s) { s = crypto.randomBytes(32); await store.setSecret(s); }
+  SECRET = s;
+}
 
 /* ---- password hashing (scrypt) ---- */
 function hashPassword(password, salt) {
@@ -72,63 +142,50 @@ const DEFAULT_USERS = [
   { username: 'nachiammai', name: 'Nachiammai', password: 'ms2026', email: '' }
 ];
 
-function loadUsers() {
-  try {
-    const users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
-    // older files may predate the email field
-    users.forEach(u => { if (typeof u.email !== 'string') u.email = ''; });
-    return users;
-  } catch (e) {
-    const users = DEFAULT_USERS.map(u => {
-      const { salt, hash } = hashPassword(u.password);
-      return { username: u.username.toLowerCase(), name: u.name, email: u.email || '', salt, hash };
-    });
-    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-    console.log('Created users.json with the 4 default accounts (password: ms2026).');
+async function loadUsers() {
+  const raw = await store.getKV('users');
+  if (raw) {
+    const users = JSON.parse(raw);
+    users.forEach(u => { if (typeof u.email !== 'string') u.email = ''; }); // older records may predate email
     return users;
   }
+  const users = DEFAULT_USERS.map(u => {
+    const { salt, hash } = hashPassword(u.password);
+    return { username: u.username.toLowerCase(), name: u.name, email: u.email || '', salt, hash };
+  });
+  await store.setKV('users', JSON.stringify(users, null, 2));
+  console.log('Seeded the 4 default accounts (password: ms2026).');
+  return users;
 }
-function saveUsers(users) { fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2)); }
+async function saveUsers(users) { await store.setKV('users', JSON.stringify(users, null, 2)); }
 
-/* ---- CLI: set a new password ---- */
-if (process.argv[2] === 'set-password') {
-  const uname = String(process.argv[3] || '').toLowerCase();
-  const pw    = process.argv[4];
-  if (!uname || !pw) {
-    console.error('Usage: node server.js set-password <username> <newpassword>');
-    process.exit(1);
+/* ---- CLI commands (run at boot in main(), so they can await the store) ---- */
+const CLI_COMMANDS = ['set-password', 'set-email', 'list-users'];
+async function runCLI(cmd) {
+  if (cmd === 'set-password') {
+    const uname = String(process.argv[3] || '').toLowerCase();
+    const pw    = process.argv[4];
+    if (!uname || !pw) { console.error('Usage: node server.js set-password <username> <newpassword>'); process.exit(1); }
+    const users = await loadUsers();
+    const u = users.find(x => x.username === uname);
+    if (!u) { console.error('No such user:', uname); process.exit(1); }
+    const { salt, hash } = hashPassword(pw);
+    u.salt = salt; u.hash = hash;
+    await saveUsers(users);
+    console.log('Password updated for', uname);
+  } else if (cmd === 'set-email') {
+    const uname = String(process.argv[3] || '').toLowerCase();
+    const email = String(process.argv[4] || '').trim();
+    if (!uname || !email) { console.error('Usage: node server.js set-email <username> <email>'); process.exit(1); }
+    const users = await loadUsers();
+    const u = users.find(x => x.username === uname);
+    if (!u) { console.error('No such user:', uname); process.exit(1); }
+    u.email = email;
+    await saveUsers(users);
+    console.log('Email updated for', uname, '->', email);
+  } else if (cmd === 'list-users') {
+    (await loadUsers()).forEach(u => console.log(u.username + '\t' + (u.email || '(no email)') + '\t' + u.name));
   }
-  const users = loadUsers();
-  const u = users.find(x => x.username === uname);
-  if (!u) { console.error('No such user:', uname); process.exit(1); }
-  const { salt, hash } = hashPassword(pw);
-  u.salt = salt; u.hash = hash;
-  saveUsers(users);
-  console.log('Password updated for', uname);
-  process.exit(0);
-}
-
-/* ---- CLI: set / change a user's notification email ---- */
-if (process.argv[2] === 'set-email') {
-  const uname = String(process.argv[3] || '').toLowerCase();
-  const email = String(process.argv[4] || '').trim();
-  if (!uname || !email) {
-    console.error('Usage: node server.js set-email <username> <email>');
-    process.exit(1);
-  }
-  const users = loadUsers();
-  const u = users.find(x => x.username === uname);
-  if (!u) { console.error('No such user:', uname); process.exit(1); }
-  u.email = email;
-  saveUsers(users);
-  console.log('Email updated for', uname, '->', email);
-  process.exit(0);
-}
-
-/* ---- CLI: list accounts (name, username, email) ---- */
-if (process.argv[2] === 'list-users') {
-  loadUsers().forEach(u => console.log(u.username + '\t' + (u.email || '(no email)') + '\t' + u.name));
-  process.exit(0);
 }
 
 /* ---- shared workspace data ---- */
@@ -239,11 +296,14 @@ Notes: Nachiammai will decide and tell which aspect of the project she is intere
   };
 }
 
-function loadData() {
-  try { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); }
-  catch (e) { const d = seedData(); fs.writeFileSync(DATA_FILE, JSON.stringify(d, null, 2)); return d; }
+async function loadData() {
+  const raw = await store.getKV('data');
+  if (raw) return JSON.parse(raw);
+  const d = seedData();
+  await store.setKV('data', JSON.stringify(d, null, 2));
+  return d;
 }
-function saveData(d) { fs.writeFileSync(DATA_FILE, JSON.stringify(d, null, 2)); }
+async function saveData(d) { await store.setKV('data', JSON.stringify(d, null, 2)); }
 
 /* ============================================================
    Email + notifications
@@ -298,10 +358,11 @@ function esc(s) {
 }
 
 // name (as shown in the app) -> user record, for looking up an owner's email
-function userByName(name) {
+async function userByName(name) {
   if (!name) return null;
   const n = String(name).trim().toLowerCase();
-  return loadUsers().find(u => (u.name || '').toLowerCase() === n || u.username === n) || null;
+  const users = await loadUsers();
+  return users.find(u => (u.name || '').toLowerCase() === n || u.username === n) || null;
 }
 
 /* Build owner-per-task map so we can detect *newly assigned* tasks on save. */
@@ -322,7 +383,7 @@ async function notifyAssignments(oldData, newData) {
       const a = after[id], b = before[id];
       const newlyAssigned = a.owner && (!b || b.owner !== a.owner);
       if (!newlyAssigned) continue;
-      const u = userByName(a.owner);
+      const u = await userByName(a.owner);
       if (!u || !u.email) continue;
       const dueLine = a.due ? `<p><strong>Due:</strong> ${esc(a.due)}</p>` : '';
       await sendEmail(u.email, 'New task assigned to you — HB38 Workspace',
@@ -342,14 +403,14 @@ async function runDeadlineDigest() {
   try {
     const today = new Date().toISOString().slice(0, 10);
     const soon = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
-    const data = loadData();
+    const data = await loadData();
     const perOwner = {};
     (data.meetings || []).forEach(mt => (mt.actionItems || []).forEach(ai => {
       if (!ai || ai.status === 'done' || !ai.owner || !ai.dueDate) return;
       if (ai.dueDate <= soon) (perOwner[ai.owner] = perOwner[ai.owner] || []).push(ai);
     }));
     for (const owner in perOwner) {
-      const u = userByName(owner);
+      const u = await userByName(owner);
       if (!u || !u.email) continue;
       const items = perOwner[owner].sort((a, b) => (a.dueDate).localeCompare(b.dueDate));
       const rows = items.map(ai => {
@@ -432,13 +493,6 @@ function mimeFor(name) {
   const ext = (name.split('.').pop() || '').toLowerCase();
   return MIME[ext] || 'application/octet-stream';
 }
-function findUpload(id) {
-  if (!/^[a-f0-9]{6,}$/.test(String(id || ''))) return null;
-  try {
-    const f = fs.readdirSync(UPLOAD_DIR).find(x => x.startsWith(id + '__'));
-    return f ? path.join(UPLOAD_DIR, f) : null;
-  } catch (e) { return null; }
-}
 /* ---- login rate limiting: max 10 failed attempts per IP per 15 min ---- */
 const failedLogins = new Map(); // ip -> { count, first }
 const MAX_FAILS = 10, WINDOW_MS = 15 * 60 * 1000;
@@ -474,7 +528,7 @@ const server = http.createServer(async (req, res) => {
         return sendJSON(res, 429, { error: 'Too many failed attempts. Try again in 15 minutes.' });
       }
       const body = JSON.parse((await readBody(req)) || '{}');
-      const users = loadUsers();
+      const users = await loadUsers();
       const u = users.find(x => x.username === String(body.username || '').trim().toLowerCase());
       if (!u || !verifyPassword(String(body.password || ''), u.salt, u.hash)) {
         recordFail(ip);
@@ -508,19 +562,19 @@ const server = http.createServer(async (req, res) => {
       if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))
         return sendJSON(res, 400, { error: 'That email address looks invalid.' });
 
-      const users = loadUsers();
+      const users = await loadUsers();
       if (users.some(u => u.username === username))
         return sendJSON(res, 409, { error: 'That username is already taken.' });
 
       const { salt, hash } = hashPassword(password);
       users.push({ username, name, email, salt, hash });
-      saveUsers(users);
+      await saveUsers(users);
 
       // add the new member to the shared members list so they can be assigned tasks
-      const data = loadData();
+      const data = await loadData();
       if (!Array.isArray(data.members)) data.members = [];
       if (!data.members.some(m => (m || '').toLowerCase() === name.toLowerCase())) {
-        data.members.push(name); saveData(data);
+        data.members.push(name); await saveData(data);
       }
       if (email) sendEmail(email, 'Welcome to the HB38 Workspace',
         emailShell(`<p>Hi ${esc(name)},</p><p>Your account <strong>${esc(username)}</strong> is ready. You can sign in any time and you'll get an email when a task is assigned to you or a deadline is near.</p>`));
@@ -531,20 +585,20 @@ const server = http.createServer(async (req, res) => {
     if (url === '/api/data') {
       const uname = authUser(req);
       if (!uname) return sendJSON(res, 401, { error: 'Unauthorized' });
-      const users = loadUsers();
+      const users = await loadUsers();
       const u = users.find(x => x.username === uname);
       if (req.method === 'GET') {
         return sendJSON(res, 200, {
           name: u ? u.name : uname,
           email: u ? (u.email || '') : '',
-          data: loadData()
+          data: await loadData()
         });
       }
       if (req.method === 'PUT') {
         const body = JSON.parse((await readBody(req)) || '{}');
         if (body && body.data && typeof body.data === 'object') {
-          const oldData = loadData();
-          saveData(body.data);
+          const oldData = await loadData();
+          await saveData(body.data);
           notifyAssignments(oldData, body.data); // fire-and-forget email on new assignments
         }
         return sendJSON(res, 200, { ok: true });
@@ -567,7 +621,7 @@ const server = http.createServer(async (req, res) => {
       if (!buf.length) return sendJSON(res, 400, { error: 'The file is empty.' });
       if (buf.length > UPLOAD_MAX_BYTES) return sendJSON(res, 413, { error: 'File is too large (max 25 MB).' });
       const id = crypto.randomBytes(8).toString('hex');
-      fs.writeFileSync(path.join(UPLOAD_DIR, id + '__' + name), buf);
+      await store.putFile(id, name, mimeFor(name), buf.length, buf);
       return sendJSON(res, 200, { id, name, size: buf.length });
     }
 
@@ -577,16 +631,15 @@ const server = http.createServer(async (req, res) => {
       const q = new URLSearchParams((req.url.split('?')[1] || ''));
       if (!verifyToken(q.get('t'))) { res.writeHead(401); return res.end('Unauthorized'); }
       const id = decodeURIComponent(url.slice('/api/file/'.length));
-      const fp = findUpload(id);
-      if (!fp) { res.writeHead(404); return res.end('File not found'); }
-      const origName = path.basename(fp).slice(id.length + 2);
+      const f = await store.getFile(id);
+      if (!f) { res.writeHead(404); return res.end('File not found'); }
       const disp = q.get('dl') ? 'attachment' : 'inline';
       res.writeHead(200, {
-        'Content-Type': mimeFor(origName),
-        'Content-Disposition': disp + '; filename="' + origName.replace(/"/g, '') + '"',
+        'Content-Type': f.mime,
+        'Content-Disposition': disp + '; filename="' + f.name.replace(/"/g, '') + '"',
         'Cache-Control': 'private, max-age=86400'
       });
-      return fs.createReadStream(fp).pipe(res);
+      return res.end(f.data);
     }
 
     // static: serve the dashboard
@@ -604,9 +657,24 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => {
-  loadUsers(); loadData(); // ensure files exist on first run
-  startDigestTimer();      // daily deadline reminder emails
-  console.log('MS (HB38) Workspace running:  http://localhost:' + PORT + '/');
-  console.log('Data dir: ' + DATA_DIR + '  |  Email: ' + (BREVO_API_KEY ? 'on (Brevo)' : 'off'));
-});
+/* ---- boot ---- */
+async function main() {
+  await store.init();
+  await loadSecret();
+
+  const cmd = process.argv[2];
+  if (CLI_COMMANDS.includes(cmd)) {   // one-off admin command, then exit
+    await runCLI(cmd);
+    process.exit(0);
+  }
+
+  await loadUsers();  // seed default accounts on first run
+  await loadData();   // seed workspace on first run
+  startDigestTimer(); // daily deadline reminder emails
+
+  server.listen(PORT, () => {
+    console.log('MS (HB38) Workspace running:  http://localhost:' + PORT + '/');
+    console.log('Storage: ' + store.kind + '  |  Email: ' + (BREVO_API_KEY ? 'on (Brevo)' : 'off'));
+  });
+}
+main().catch(err => { console.error('Fatal startup error:', err); process.exit(1); });

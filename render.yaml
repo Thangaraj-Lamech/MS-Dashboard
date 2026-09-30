@@ -1,0 +1,26 @@
+# Render.com Blueprint — free, no card, auto-deploys on every push to GitHub.
+# Setup: on Render, New → Blueprint → connect the MS-Dashboard repo.
+# Render reads this file, creates the service, and asks you to fill the
+# secret env vars below (the ones marked sync:false).
+services:
+  - type: web
+    name: ms-hb38
+    runtime: node
+    plan: free
+    region: singapore          # closest free Render region to India
+    buildCommand: npm install
+    startCommand: node server.js
+    autoDeploy: true           # redeploy automatically when you push to main
+    envVars:
+      - key: TURSO_URL         # from Turso: your database URL (libsql://...)
+        sync: false
+      - key: TURSO_TOKEN       # from Turso: the database auth token
+        sync: false
+      - key: SIGNUP_CODE       # shared code teammates type when signing up
+        sync: false
+      - key: BREVO_API_KEY     # optional: for email alerts (leave blank to disable)
+        sync: false
+      - key: APP_URL           # your live URL, e.g. https://ms-hb38.onrender.com
+        sync: false
+      - key: MAIL_FROM
+        value: brainsgbc@gmail.com
