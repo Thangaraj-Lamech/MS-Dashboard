@@ -1,0 +1,13 @@
+node_modules/
+logs/
+backup/
+secret.key
+public_url.txt
+rclone.conf
+*.tgz
+*.zip
+ms-workspace-project*
+# the big saved-transcript text file
+*-i-want-to-create-a-dashboard-*.txt
+.claude/
+.github/

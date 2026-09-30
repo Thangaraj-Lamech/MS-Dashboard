@@ -1,0 +1,14 @@
+{
+  "name": "ms-hb38-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MS (HB38) Project Workspace — team dashboard: meeting minutes, action items, timeline, literature, resources, file uploads and email notifications. Pure Node.js, no dependencies.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED"
+}

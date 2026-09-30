@@ -1,0 +1,176 @@
+{
+  "members": [
+    "Thangaraj",
+    "Anjana",
+    "Rakesh",
+    "Nachiammai",
+    "Richa",
+    "Supriti",
+    "Easha"
+  ],
+  "literature": [
+    {
+      "id": "0d1bxt4f",
+      "title": "Assessment of lesions on magnetic resonance imaging in multiple sclerosis: practical guidelines",
+      "link": "10.1093/brain/awz144",
+      "authors": "Filippi et al",
+      "year": "2019",
+      "category": "Lesion classification in MRI",
+      "notes": ""
+    }
+  ],
+  "resources": [],
+  "meetings": [
+    {
+      "id": "44d1d20115",
+      "date": "2026-08-21",
+      "title": "HB38 — SPMS Histopathological Mapping | Discussion with Dr Stephanie Zandee",
+      "attendees": "Stephanie, Richa, Anjana, Easha",
+      "notes": "Time: 6:30 PM – 7:30 PM IST · Mode: Video call · Prepared by: Anjana\n\nBackground\nAnjana presented an overview of the HB38 project — histopathological mapping of demyelination in a case of Secondary Progressive Multiple Sclerosis (SPMS) — to Dr. Stephanie, covering clinical history, MRI summary, gross pathology, histology findings (HE/LFB/IHC staining), lesion classification, new IHC targets, automated GM/WM detection analytics, and the proposed scope for molecular work.\n\n1. MRI Analysis\n- The team is looking to procure clinical MRI data (currently only radiology reports are available) to enable detailed analysis.\n- Rakesh had prepared an MRI analysis based on the radiological reports available; a region-wise summary resulted in a heatmap showing MRI-documented disease burden by brain and spinal cord regions (2010–2022), shared in the presentation.\n- Stephanie highlighted paramagnetic rim lesions (PRLs) as an important and interesting aspect to analyse once MRI data is available.\n- She also suggested looking at pre-active and active lesions on MRI (via perivascular cuffing/infiltrates) as a way to explore early signs of MS.\n\n2. Staining Recommendations\n- Stephanie suggested performing Oil Red O staining, which helps identify active myelin breakdown — distinguishing actively demyelinating tissue from chronic, inactive lesions.\n- She offered to share the Oil Red O protocol, along with other iron-staining protocols worth trying.\n\n3. Tissue Sectioning Plan\n- Based on the disease-burden mapping, the posterior and cerebellum blocks of HB38 (currently frozen) need to be planned and sectioned.\n\n4. Analytics\n- The GM/WM automated-detection algorithm requires further fine-tuning (ongoing work led by Rakesh).\n- Interest in extending analysis to grey-matter lesions, cortical damage, and meningeal inflammation.\n\n5. Scope for Molecular Work\n- Explore feasibility of spatial transcriptomics on this tissue, contingent on compatibility with FFPE (formalin-fixed, paraffin-embedded) samples.\n\n6. Additional Ideas Suggested by Stephanie\n- Comparative analysis of active lesions in the cortex and brainstem.\n- Region-wise comparison of active vs. inactive lesions across the whole brain.\n- Development of a trajectory of GM and WM damage over the disease course.\n- She also offered to share relevant literature/papers with the team.\n\nNote: These minutes are based on notes taken during the discussion; the session could not be fully transcribed. Dr Stephanie will be requested to review, add any missed points, and correct anything captured inaccurately.",
+      "actionItems": [
+        {
+          "id": "96a11fb3d6",
+          "task": "Procure clinical MRI data for detailed analysis",
+          "owner": "",
+          "dueDate": "",
+          "status": "open"
+        },
+        {
+          "id": "2bf94dfd94",
+          "task": "Explore paramagnetic rim lesions (PRLs) once MRI data is available",
+          "owner": "",
+          "dueDate": "",
+          "status": "open"
+        },
+        {
+          "id": "388e4ef369",
+          "task": "Continue / extend region-wise MRI disease-burden analysis (heatmap already shared)",
+          "owner": "",
+          "dueDate": "",
+          "status": "open"
+        },
+        {
+          "id": "5648f8815d",
+          "task": "Look at pre-active and active lesions on MRI (perivascular cuffing/infiltrates) to explore early MS signs",
+          "owner": "",
+          "dueDate": "",
+          "status": "open"
+        },
+        {
+          "id": "a3e793a984",
+          "task": "Follow up on Oil Red O and other iron-staining protocols from Stephanie",
+          "owner": "",
+          "dueDate": "",
+          "status": "open"
+        },
+        {
+          "id": "ba974344d3",
+          "task": "Perform Oil Red O staining to distinguish actively demyelinating vs. chronic inactive tissue",
+          "owner": "",
+          "dueDate": "",
+          "status": "open"
+        },
+        {
+          "id": "28e04436f9",
+          "task": "Plan and section the posterior and cerebellum blocks of HB38 (currently frozen)",
+          "owner": "",
+          "dueDate": "",
+          "status": "open"
+        },
+        {
+          "id": "e33581d706",
+          "task": "Fine-tune GM/WM automated-detection algorithm",
+          "owner": "",
+          "dueDate": "",
+          "status": "open"
+        },
+        {
+          "id": "bee2239ee6",
+          "task": "Examine grey-matter lesions, cortical damage, and meningeal inflammation",
+          "owner": "",
+          "dueDate": "",
+          "status": "open"
+        },
+        {
+          "id": "8210c3f032",
+          "task": "Arrange LIMS access for Stephanie",
+          "owner": "",
+          "dueDate": "",
+          "status": "open"
+        }
+      ]
+    },
+    {
+      "id": "e5b8db8c28",
+      "date": "2026-09-03",
+      "title": "MS Weekly Update Meeting — HB38 Project",
+      "attendees": "Rakesh, Anjana, Thangaraj, Nachiammai, Supriti",
+      "notes": "Prepared by: Anjana\nNote: this is now a recurring weekly meeting, held every Thursday, 2:00 PM – 3:00 PM.\n\nPriority Item\nThe main priority is to get the status of all sections of HB38R (M2P), Block 535, at the earliest, in order to begin stacking and registration work.\n\n1. Oil Red O Staining — discussion on procurement of reagents and purpose (assessing active myelin breakdown). Rakesh suggested running a few trials on HB38R (M2P), Block ID: 535, while awaiting the staining protocol from Stephanie.\n\n2. Dashboard & Histological Processing Coordination — the dashboard needs updating, primarily for block 535 and other blocks. Coordination is needed with one Histotech and one scanning team member. Karthikeyan has assigned Bodhini (Histotech) and Gokul (scanning team) to the HB38 MS case.\n\n3. Registration — Supriti shared her opinions on the registration process. The team has started a sheet, '535 Histology Reconstruction', which needs to be filled ASAP so Supriti can begin registration and stacking work.\n\n4. GM/WM Detectors — Rakesh explained how the automated detection studio works for GM/WM and CD68 detection. Thangaraj is to manually annotate one section (block 535) before the next meeting.\n\n5. MRI — Rakesh briefed the team on visualizing Ex vivo MRI using ITK-SNAP. Efforts to procure pre-mortem MRI are happening in parallel.\n\n6. Follow-up Meeting with Stephanie — Rakesh will send the follow-up email to schedule the next meeting.\n\n7. LIMS / Open Atlas Access for Stephanie — Richa will have a word with Rakesh and Supriti regarding granting access.\n\n8. Sectioning Plan — sectioning of the cerebellum + brainstem block will begin from next week onwards.\n\n9. New IHC Markers — discussion on new IHC markers and analysis to be taken up.\n\nNext Meeting: Thursday, 10 September 2026, 2:00 PM – 3:00 PM (recurring weekly slot).\nNotes: Nachiammai will decide and tell which aspect of the project she is interested in.",
+      "actionItems": [
+        {
+          "id": "f89c7e0a21",
+          "task": "Confirm reagent delivery timeline and start date for Oil Red O trial staining on HB38R (M2P), Block ID: 535",
+          "owner": "Anjana",
+          "dueDate": "",
+          "status": "open"
+        },
+        {
+          "id": "e53b2eeb8b",
+          "task": "Coordinate with Bodhini (Histotech) and Gokul (scanning team) for smooth, active histological processing of block 535 and other blocks",
+          "owner": "Thangaraj",
+          "dueDate": "",
+          "status": "open"
+        },
+        {
+          "id": "d277a04227",
+          "task": "Fill the '535 Histology Reconstruction' Gsheet ASAP to enable Supriti to begin registration and stacking work",
+          "owner": "Thangaraj",
+          "dueDate": "",
+          "status": "open"
+        },
+        {
+          "id": "7765f6ecbc",
+          "task": "Manually annotate section 1061 (block 535) before the next meeting",
+          "owner": "Thangaraj",
+          "dueDate": "2026-09-10",
+          "status": "open"
+        },
+        {
+          "id": "e28de2813f",
+          "task": "Continue efforts to procure pre-mortem MRI",
+          "owner": "Richa",
+          "dueDate": "",
+          "status": "open"
+        },
+        {
+          "id": "d0e4ea4306",
+          "task": "Send follow-up email to Dr. Stephanie regarding next meeting",
+          "owner": "Rakesh",
+          "dueDate": "",
+          "status": "open"
+        },
+        {
+          "id": "f0617b3677",
+          "task": "Discuss LIMS / Open Atlas access for Dr. Stephanie with Rakesh and Supriti",
+          "owner": "Richa",
+          "dueDate": "",
+          "status": "open"
+        },
+        {
+          "id": "b40a7e075c",
+          "task": "Begin sectioning of the cerebellum + brainstem block",
+          "owner": "Anjana",
+          "dueDate": "",
+          "status": "open"
+        },
+        {
+          "id": "dd3e71af9a",
+          "task": "Progress work on new IHC markers and analysis",
+          "owner": "Anjana",
+          "dueDate": "",
+          "status": "open"
+        }
+      ]
+    }
+  ]
+}

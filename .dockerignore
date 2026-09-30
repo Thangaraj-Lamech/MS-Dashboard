@@ -1,0 +1,11 @@
+node_modules
+logs
+backup
+MS dashboard
+*.txt
+secret.key
+public_url.txt
+.claude
+.git
+Dockerfile
+fly.toml

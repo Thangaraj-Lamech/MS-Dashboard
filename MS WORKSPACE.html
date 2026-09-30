@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multiple Sclerosis (HB38) Project Workspace</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;1,400&family=Work+Sans:wght@400;500;600&display=swap');
+
+:root{
+  --paper:#F5F3ED;
+  --surface:#FFFFFF;
+  --ink:#22303F;
+  --ink-light:#5B6672;
+  --line:#DDD6C6;
+  --line-soft:#E9E4D8;
+  --done:#4F7B69;
+  --done-bg:#E7EFEA;
+  --pending:#B8823D;
+  --pending-bg:#F5EBDA;
+  --overdue:#A6483C;
+  --overdue-bg:#F3E4E1;
+  --font-serif:'Newsreader', Georgia, serif;
+  --font-sans:'Work Sans', -apple-system, sans-serif;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--font-sans);
+  font-size:14px;
+  line-height:1.5;
+}
+#root{min-height:100vh;}
+
+/* ---- Loading / name gate ---- */
+.gate{
+  max-width:420px;
+  margin:80px auto;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:32px 28px;
+}
+.gate h1{font-family:var(--font-serif);font-weight:500;font-size:22px;margin:0 0 6px;}
+.gate p{color:var(--ink-light);margin:0 0 20px;font-size:13px;}
+.gate input{
+  width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:4px;
+  font-family:var(--font-sans);font-size:14px;background:var(--paper);
+}
+.gate button{margin-top:14px;}
+.gate label{display:block;font-size:12px;color:var(--ink-light);margin:14px 0 5px;}
+.gate .err{color:var(--overdue);font-size:12.5px;margin-top:12px;min-height:16px;}
+.gate .hint{font-size:11.5px;color:var(--ink-light);margin-top:18px;line-height:1.5;border-top:1px solid var(--line-soft);padding-top:14px;}
+.signout{font-size:12px;color:var(--ink-light);cursor:pointer;margin-top:6px;display:inline-block;}
+.signout:hover{color:var(--overdue);}
+
+/* ---- Layout ---- */
+.app{display:flex;min-height:100vh;}
+.sidebar{
+  width:300px;flex-shrink:0;border-right:1px solid var(--line);
+  background:var(--surface);display:flex;flex-direction:column;
+}
+.sidebar-head{padding:22px 20px 16px;border-bottom:1px solid var(--line-soft);}
+.sidebar-head h1{font-family:var(--font-serif);font-size:18px;font-weight:500;margin:0;line-height:1.3;}
+.sidebar-head .who{color:var(--ink-light);font-size:12px;margin-top:4px;}
+.tabs{display:flex;border-bottom:1px solid var(--line-soft);}
+.tab{
+  flex:1;padding:12px 0;text-align:center;cursor:pointer;color:var(--ink-light);
+  font-size:13px;border-bottom:2px solid transparent;
+}
+.tab.active{color:var(--ink);border-bottom-color:var(--ink);font-weight:500;}
+.meeting-list{flex:1;overflow-y:auto;}
+.meeting-item{
+  padding:14px 20px;border-bottom:1px solid var(--line-soft);cursor:pointer;
+}
+.meeting-item:hover{background:var(--paper);}
+.meeting-item.active{background:var(--paper);border-left:3px solid var(--ink);}
+.meeting-item .d{font-size:12px;color:var(--ink-light);}
+.meeting-item .t{font-family:var(--font-serif);font-size:16px;margin-top:2px;}
+.meeting-item .cnt{font-size:11.5px;color:var(--ink-light);margin-top:4px;}
+.new-btn{
+  margin:14px 20px;padding:9px;border:1px solid var(--ink);background:var(--ink);
+  color:var(--paper);border-radius:4px;cursor:pointer;font-size:13px;font-family:var(--font-sans);
+  text-align:center;
+}
+.new-btn:hover{opacity:.9;}
+
+.main{flex:1;overflow-y:auto;padding:36px 44px;max-width:820px;}
+.empty{color:var(--ink-light);margin-top:80px;text-align:center;}
+
+/* ---- Meeting detail ---- */
+.mrow{display:flex;gap:16px;margin-bottom:18px;flex-wrap:wrap;}
+.field{flex:1;min-width:180px;}
+.field label{display:block;font-size:11.5px;color:var(--ink-light);margin-bottom:5px;}
+.field input, .field textarea{
+  width:100%;border:1px solid var(--line);border-radius:4px;padding:8px 10px;
+  font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink);
+}
+.title-input{
+  font-family:var(--font-serif);font-size:26px;font-weight:500;border:none;background:none;
+  width:100%;padding:0;margin-bottom:4px;color:var(--ink);
+}
+.title-input:focus{outline:none;}
+.meta-line{color:var(--ink-light);font-size:12.5px;margin-bottom:22px;}
+.section-label{
+  font-size:12px;color:var(--ink-light);margin:26px 0 10px;
+  border-bottom:1px solid var(--line-soft);padding-bottom:8px;
+}
+textarea.notes{min-height:130px;resize:vertical;line-height:1.6;}
+
+.ai-row{
+  display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--line-soft);
+}
+.ai-check{
+  width:18px;height:18px;border:1.5px solid var(--line);border-radius:4px;margin-top:2px;
+  flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;
+}
+.ai-check.done{background:var(--done);border-color:var(--done);color:#fff;font-size:12px;}
+.ai-task{flex:1;font-size:14px;}
+.ai-task.done{color:var(--ink-light);text-decoration:line-through;}
+.ai-meta{display:flex;gap:8px;align-items:center;flex-shrink:0;}
+.ai-owner{
+  font-size:11.5px;padding:3px 8px;border-radius:10px;background:var(--paper);
+  border:1px solid var(--line);color:var(--ink-light);
+}
+.ai-due{font-size:11.5px;padding:3px 8px;border-radius:10px;}
+.ai-due.pending{background:var(--pending-bg);color:var(--pending);}
+.ai-due.overdue{background:var(--overdue-bg);color:var(--overdue);}
+.ai-due.done{background:var(--done-bg);color:var(--done);}
+.ai-del{color:var(--ink-light);cursor:pointer;font-size:15px;padding:0 4px;}
+.ai-del:hover{color:var(--overdue);}
+
+.add-ai{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.add-ai input, .add-ai select{
+  border:1px solid var(--line);border-radius:4px;padding:8px 10px;font-size:13px;
+  font-family:var(--font-sans);background:var(--surface);color:var(--ink);
+}
+.add-ai input[type=text]{flex:1;min-width:180px;}
+.add-ai button{
+  border:1px solid var(--ink);background:var(--surface);color:var(--ink);
+  border-radius:4px;padding:8px 14px;cursor:pointer;font-size:13px;
+}
+.add-ai button:hover{background:var(--ink);color:var(--paper);}
+.del-meeting{color:var(--ink-light);font-size:12.5px;cursor:pointer;margin-top:30px;display:inline-block;}
+.del-meeting:hover{color:var(--overdue);}
+
+/* ---- Action items overview ---- */
+.overview-filters{display:flex;gap:8px;margin-bottom:20px;}
+.overview-filters select{
+  border:1px solid var(--line);border-radius:4px;padding:7px 10px;font-size:13px;
+  font-family:var(--font-sans);background:var(--surface);color:var(--ink);
+}
+.ov-group{margin-bottom:24px;}
+.ov-group h3{font-family:var(--font-serif);font-size:16px;font-weight:500;margin:0 0 8px;color:var(--ink-light);}
+.ov-row{
+  display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line-soft);
+}
+.ov-row .src{font-size:11.5px;color:var(--ink-light);}
+button.plain{background:none;border:none;cursor:pointer;font-family:var(--font-sans);}
+
+/* ---- Tabs (4-wide) ---- */
+.tabs{flex-wrap:wrap;}
+.tabs .tab{flex:1 1 50%;font-size:12.5px;padding:10px 0;}
+
+/* ---- Literature / Resources ---- */
+.lib-add{
+  background:var(--surface);border:1px solid var(--line);border-radius:6px;
+  padding:16px;margin-bottom:26px;
+}
+.lib-add .mrow{margin-bottom:12px;}
+.lib-add .mrow:last-child{margin-bottom:0;}
+.lib-add-title{font-size:12px;color:var(--ink-light);margin-bottom:12px;}
+.lib-cat{margin-bottom:22px;}
+.lib-cat h3{
+  font-family:var(--font-serif);font-size:16px;font-weight:500;margin:0 0 4px;
+  color:var(--ink);
+}
+.lib-row{
+  display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--line-soft);
+}
+.lib-main{flex:1;min-width:0;}
+.lib-title{font-size:14px;font-weight:500;}
+.lib-title a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line);}
+.lib-title a:hover{border-bottom-color:var(--ink);}
+.lib-sub{font-size:12px;color:var(--ink-light);margin-top:3px;}
+.lib-notes{font-size:12.5px;color:var(--ink-light);margin-top:5px;line-height:1.5;}
+.lib-tag{
+  font-size:11px;padding:3px 8px;border-radius:10px;background:var(--paper);
+  border:1px solid var(--line);color:var(--ink-light);flex-shrink:0;margin-top:1px;
+}
+.lib-del{color:var(--ink-light);cursor:pointer;font-size:15px;padding:0 4px;flex-shrink:0;}
+.lib-del:hover{color:var(--overdue);}
+
+/* ---- Home overview ---- */
+.hello{font-family:var(--font-serif);font-size:24px;font-weight:500;margin:0 0 4px;}
+.cards{display:flex;flex-wrap:wrap;gap:14px;margin:6px 0 26px;}
+.card{
+  flex:1 1 150px;min-width:150px;background:var(--surface);border:1px solid var(--line);
+  border-radius:6px;padding:16px 18px;
+}
+.card .num{font-family:var(--font-serif);font-size:30px;line-height:1;}
+.card .lbl{font-size:12px;color:var(--ink-light);margin-top:6px;}
+.card.click{cursor:pointer;}
+.card.click:hover{border-color:var(--ink);}
+.card.warn .num{color:var(--overdue);}
+.card.good .num{color:var(--done);}
+
+/* ---- Timeline ---- */
+.tl{position:relative;margin-top:10px;padding-left:8px;border-left:2px solid var(--line);}
+.tl-item{position:relative;padding:0 0 22px 20px;}
+.tl-item:before{
+  content:'';position:absolute;left:-7px;top:3px;width:11px;height:11px;border-radius:50%;
+  background:var(--surface);border:2px solid var(--ink-light);
+}
+.tl-item.meeting:before{background:var(--ink);border-color:var(--ink);}
+.tl-item.overdue:before{background:var(--overdue);border-color:var(--overdue);}
+.tl-item.due:before{background:var(--pending);border-color:var(--pending);}
+.tl-date{font-size:11.5px;color:var(--ink-light);}
+.tl-title{font-size:14px;margin-top:2px;}
+.tl-sub{font-size:12px;color:var(--ink-light);margin-top:2px;}
+
+/* ---- Signup toggle on the gate ---- */
+.gate .switch{font-size:12.5px;color:var(--ink-light);margin-top:16px;}
+.gate .switch a{color:var(--ink);cursor:pointer;border-bottom:1px solid var(--line);}
+.gate .switch a:hover{border-bottom-color:var(--ink);}
+.gate .ok{color:var(--done);font-size:12.5px;margin-top:12px;min-height:16px;}
+
+/* ---- File attachments ---- */
+.attach-wrap{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.attach-chip{
+  display:inline-flex;align-items:center;gap:6px;font-size:12px;background:var(--paper);
+  border:1px solid var(--line);border-radius:12px;padding:3px 6px 3px 10px;max-width:100%;
+}
+.attach-chip a{
+  color:var(--ink);text-decoration:none;max-width:200px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;
+}
+.attach-chip a:hover{text-decoration:underline;}
+.attach-chip .x{cursor:pointer;color:var(--ink-light);font-size:13px;}
+.attach-chip .x:hover{color:var(--overdue);}
+.attach-btn{
+  font-size:12px;color:var(--ink-light);cursor:pointer;border:1px dashed var(--line);
+  border-radius:12px;padding:3px 10px;background:none;font-family:var(--font-sans);
+}
+.attach-btn:hover{border-color:var(--ink);color:var(--ink);}
+.attach-btn[disabled]{opacity:.5;cursor:default;}
+
+/* ---- Notifications bell ---- */
+.bell{position:relative;cursor:pointer;font-size:18px;line-height:1;flex-shrink:0;}
+.bell .dot{
+  position:absolute;top:-6px;right:-8px;background:var(--overdue);color:#fff;font-size:10px;
+  min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;
+  justify-content:center;padding:0 4px;font-family:var(--font-sans);font-weight:600;
+}
+.notif-panel{background:var(--surface);border-bottom:1px solid var(--line-soft);padding:12px 20px;}
+.notif-panel h4{margin:0 0 6px;font-size:12px;color:var(--ink-light);font-weight:600;}
+.notif-item{font-size:13px;padding:7px 0;border-bottom:1px solid var(--line-soft);cursor:pointer;}
+.notif-item:last-child{border-bottom:none;}
+.notif-item:hover{color:var(--overdue);}
+.notif-empty{font-size:13px;color:var(--ink-light);}
+
+/* ---- Mobile / small screens ---- */
+@media (max-width:720px){
+  .app{flex-direction:column;min-height:auto;}
+  .sidebar{width:100%;border-right:none;border-bottom:1px solid var(--line);}
+  .sidebar-head{padding:16px 16px 12px;}
+  .sidebar-head h1{font-size:16px;}
+  .meeting-list{max-height:300px;}
+  .main{padding:20px 16px;max-width:none;}
+  .title-input{font-size:22px;}
+  .hello{font-size:20px;}
+  .card{flex:1 1 44%;min-width:130px;padding:14px 16px;}
+  .card .num{font-size:26px;}
+  .gate{margin:36px 14px;padding:24px 20px;}
+  .ai-meta{flex-wrap:wrap;justify-content:flex-end;}
+  .notif-panel{padding:12px 16px;}
+  /* 16px inputs stop iOS Safari from auto-zooming on focus */
+  .field input,.field textarea,.gate input,.add-ai input,.add-ai select,
+  .overview-filters select{font-size:16px;}
+}
+</style>
+</head>
+<body>
+<div id="root"><div class="gate"><p>Loading…</p></div></div>
+
+<script>
+/* Show any script error on the page instead of failing to a blank screen. */
+window.addEventListener('error', function(ev){
+  try{
+    var r = document.getElementById('root');
+    if(r){
+      r.innerHTML = '<div class="gate"><h1>Something went wrong</h1>'
+        + '<p>The dashboard hit an error while loading. Please send this message to the admin:</p>'
+        + '<pre style="white-space:pre-wrap;font-size:12px;color:#A6483C;background:#F3E4E1;padding:12px;border-radius:4px;">'
+        + String(ev.message || ev.error || 'Unknown error')
+        + '</pre></div>';
+    }
+  }catch(e){}
+});
+</script>
+<script>
+(function(){
+
+/* ------------------------------------------------------------
+   Backend API client. Authentication and ALL workspace data
+   live on the server (see server.js), so the 4 accounts share
+   ONE workspace. The login token is kept in localStorage so a
+   refresh stays signed in (with an in-memory fallback).
+   To change who can log in, edit DEFAULT_USERS in server.js.
+   ------------------------------------------------------------ */
+const TokenStore = (function(){
+  let mem = null;
+  return {
+    get(){ try{ return localStorage.getItem('ms_token'); }catch(e){ return mem; } },
+    set(t){ mem = t; try{ if(t) localStorage.setItem('ms_token', t); else localStorage.removeItem('ms_token'); }catch(e){} }
+  };
+})();
+
+const API = {
+  async login(username, password){
+    const r = await fetch('/api/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ username, password })
+    });
+    if(r.status === 429) return { locked:true };
+    if(!r.ok) return null;
+    return await r.json(); // { token, name }
+  },
+  async getData(){
+    const t = TokenStore.get();
+    const r = await fetch('/api/data', { headers: t ? {'Authorization':'Bearer '+t} : {} });
+    if(r.status === 401){ TokenStore.set(null); return { unauthorized:true }; }
+    if(!r.ok) throw new Error('Could not load workspace (HTTP '+r.status+')');
+    return await r.json(); // { name, data }
+  },
+  async saveData(data){
+    const t = TokenStore.get();
+    const r = await fetch('/api/data', {
+      method:'PUT',
+      headers: Object.assign({'Content-Type':'application/json'}, t ? {'Authorization':'Bearer '+t} : {}),
+      body: JSON.stringify({ data })
+    });
+    if(r.status === 401){ TokenStore.set(null); return false; }
+    return r.ok;
+  },
+  async signup(payload){
+    const r = await fetch('/api/signup', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const j = await r.json().catch(()=>({}));
+    return Object.assign({ ok:r.ok, status:r.status }, j); // {ok, token?, name?, error?}
+  },
+  async uploadFile(file){
+    const dataUrl = await new Promise((resolve, reject)=>{
+      const fr = new FileReader();
+      fr.onload = ()=>resolve(fr.result);
+      fr.onerror = ()=>reject(new Error('Could not read the file.'));
+      fr.readAsDataURL(file);
+    });
+    const t = TokenStore.get();
+    const r = await fetch('/api/upload', {
+      method:'POST',
+      headers: Object.assign({'Content-Type':'application/json'}, t ? {'Authorization':'Bearer '+t} : {}),
+      body: JSON.stringify({ name:file.name, dataUrl })
+    });
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(j.error || ('Upload failed (HTTP '+r.status+')'));
+    return j; // { id, name, size }
+  }
+};
+
+function patchData(d){
+  d = d || {};
+  if(!Array.isArray(d.members))    d.members = [];
+  if(!Array.isArray(d.meetings))   d.meetings = [];
+  if(!Array.isArray(d.literature)) d.literature = [];
+  if(!Array.isArray(d.resources))  d.resources = [];
+  return d;
+}
+
+const root = document.getElementById('root');
+let state = {
+  loading: true,
+  userName: null,
+  loadError: null,
+  data: null, // { members: [], meetings: [], literature: [], resources: [] }
+  activeTab: 'home',
+  activeMeetingId: null,
+  ovOwnerFilter: 'all',
+  ovStatusFilter: 'open',
+  authMode: 'login',  // 'login' | 'signup'
+  showNotif: false
+};
+
+function uid(){ return Math.random().toString(36).slice(2,10); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+function seedData(){
+  return {
+    members: ['Anjana','Richa','Rakesh','Thangaraj','Nachammai','Supriti','Easha'],
+    literature: [],
+    resources: [],
+    meetings: [
+      {
+        id: uid(),
+        date: '2026-08-21',
+        title: 'HB38 — SPMS Histopathological Mapping | Discussion with Dr Stephanie Zandee',
+        attendees: 'Stephanie, Richa, Anjana, Easha',
+        notes:
+`Time: 6:30 PM – 7:30 PM IST · Mode: Video call · Prepared by: Anjana
+
+Background
+Anjana presented an overview of the HB38 project — histopathological mapping of demyelination in a case of Secondary Progressive Multiple Sclerosis (SPMS) — to Dr. Stephanie, covering clinical history, MRI summary, gross pathology, histology findings (HE/LFB/IHC staining), lesion classification, new IHC targets, automated GM/WM detection analytics, and the proposed scope for molecular work.
+
+1. MRI Analysis
+- The team is looking to procure clinical MRI data (currently only radiology reports are available) to enable detailed analysis.
+- Rakesh had prepared an MRI analysis based on the radiological reports available; a region-wise summary resulted in a heatmap showing MRI-documented disease burden by brain and spinal cord regions (2010–2022), shared in the presentation.
+- Stephanie highlighted paramagnetic rim lesions (PRLs) as an important and interesting aspect to analyse once MRI data is available.
+- She also suggested looking at pre-active and active lesions on MRI (via perivascular cuffing/infiltrates) as a way to explore early signs of MS.
+
+2. Staining Recommendations
+- Stephanie suggested performing Oil Red O staining, which helps identify active myelin breakdown — distinguishing actively demyelinating tissue from chronic, inactive lesions.
+- She offered to share the Oil Red O protocol, along with other iron-staining protocols worth trying.
+
+3. Tissue Sectioning Plan
+- Based on the disease-burden mapping, the posterior and cerebellum blocks of HB38 (currently frozen) need to be planned and sectioned.
+
+4. Analytics
+- The GM/WM automated-detection algorithm requires further fine-tuning (ongoing work led by Rakesh).
+- Interest in extending analysis to grey-matter lesions, cortical damage, and meningeal inflammation.
+
+5. Scope for Molecular Work
+- Explore feasibility of spatial transcriptomics on this tissue, contingent on compatibility with FFPE (formalin-fixed, paraffin-embedded) samples.
+
+6. Additional Ideas Suggested by Stephanie
+- Comparative analysis of active lesions in the cortex and brainstem.
+- Region-wise comparison of active vs. inactive lesions across the whole brain.
+- Development of a trajectory of GM and WM damage over the disease course.
+- She also offered to share relevant literature/papers with the team.
+
+Note: These minutes are based on notes taken during the discussion; the session could not be fully transcribed. Dr Stephanie will be requested to review, add any missed points, and correct anything captured inaccurately.`,
+        actionItems: [
+          {id: uid(), task:'Procure clinical MRI data for detailed analysis', owner:'', dueDate:'', status:'open'},
+          {id: uid(), task:'Explore paramagnetic rim lesions (PRLs) once MRI data is available', owner:'', dueDate:'', status:'open'},
+          {id: uid(), task:'Continue / extend region-wise MRI disease-burden analysis (heatmap already shared)', owner:'', dueDate:'', status:'open'},
+          {id: uid(), task:'Look at pre-active and active lesions on MRI (perivascular cuffing/infiltrates) to explore early MS signs', owner:'', dueDate:'', status:'open'},
+          {id: uid(), task:'Follow up on Oil Red O and other iron-staining protocols from Stephanie', owner:'', dueDate:'', status:'open'},
+          {id: uid(), task:'Perform Oil Red O staining to distinguish actively demyelinating vs. chronic inactive tissue', owner:'', dueDate:'', status:'open'},
+          {id: uid(), task:'Plan and section the posterior and cerebellum blocks of HB38 (currently frozen)', owner:'', dueDate:'', status:'open'},
+          {id: uid(), task:'Fine-tune GM/WM automated-detection algorithm', owner:'', dueDate:'', status:'open'},
+          {id: uid(), task:'Examine grey-matter lesions, cortical damage, and meningeal inflammation', owner:'', dueDate:'', status:'open'},
+          {id: uid(), task:'Arrange LIMS access for Stephanie', owner:'', dueDate:'', status:'open'}
+        ]
+      },
+      {
+        id: uid(),
+        date: '2026-09-03',
+        title: 'MS Weekly Update Meeting — HB38 Project',
+        attendees: 'Rakesh, Anjana, Thangaraj, Nachammai, Supriti',
+        notes:
+`Prepared by: Anjana
+Note: this is now a recurring weekly meeting, held every Thursday, 2:00 PM – 3:00 PM.
+
+Priority Item
+The main priority is to get the status of all sections of HB38R (M2P), Block 535, at the earliest, in order to begin stacking and registration work.
+
+1. Oil Red O Staining — discussion on procurement of reagents and purpose (assessing active myelin breakdown). Rakesh suggested running a few trials on HB38R (M2P), Block ID: 535, while awaiting the staining protocol from Stephanie.
+
+2. Dashboard & Histological Processing Coordination — the dashboard needs updating, primarily for block 535 and other blocks. Coordination is needed with one Histotech and one scanning team member. Karthikeyan has assigned Bodhini (Histotech) and Gokul (scanning team) to the HB38 MS case.
+
+3. Registration — Supriti shared her opinions on the registration process. The team has started a sheet, '535 Histology Reconstruction', which needs to be filled ASAP so Supriti can begin registration and stacking work.
+
+4. GM/WM Detectors — Rakesh explained how the automated detection studio works for GM/WM and CD68 detection. Thangaraj is to manually annotate one section (block 535) before the next meeting.
+
+5. MRI — Rakesh briefed the team on visualizing Ex vivo MRI using ITK-SNAP. Efforts to procure pre-mortem MRI are happening in parallel.
+
+6. Follow-up Meeting with Stephanie — Rakesh will send the follow-up email to schedule the next meeting.
+
+7. LIMS / Open Atlas Access for Stephanie — Richa will have a word with Rakesh and Supriti regarding granting access.
+
+8. Sectioning Plan — sectioning of the cerebellum + brainstem block will begin from next week onwards.
+
+9. New IHC Markers — discussion on new IHC markers and analysis to be taken up.
+
+Next Meeting: Thursday, 10 September 2026, 2:00 PM – 3:00 PM (recurring weekly slot).
+Notes: Nachammai will decide and tell which aspect of the project she is interested in.`,
+        actionItems: [
+          {id: uid(), task:'Confirm reagent delivery timeline and start date for Oil Red O trial staining on HB38R (M2P), Block ID: 535', owner:'Anjana', dueDate:'', status:'open'},
+          {id: uid(), task:'Coordinate with Bodhini (Histotech) and Gokul (scanning team) for smooth, active histological processing of block 535 and other blocks', owner:'Thangaraj', dueDate:'', status:'open'},
+          {id: uid(), task:"Fill the '535 Histology Reconstruction' Gsheet ASAP to enable Supriti to begin registration and stacking work", owner:'Thangaraj', dueDate:'', status:'open'},
+          {id: uid(), task:'Manually annotate section 1061 (block 535) before the next meeting', owner:'Thangaraj', dueDate:'2026-09-10', status:'open'},
+          {id: uid(), task:'Continue efforts to procure pre-mortem MRI', owner:'Richa', dueDate:'', status:'open'},
+          {id: uid(), task:'Send follow-up email to Dr. Stephanie regarding next meeting', owner:'Rakesh', dueDate:'', status:'open'},
+          {id: uid(), task:'Discuss LIMS / Open Atlas access for Dr. Stephanie with Rakesh and Supriti', owner:'Richa', dueDate:'', status:'open'},
+          {id: uid(), task:'Begin sectioning of the cerebellum + brainstem block', owner:'Anjana', dueDate:'', status:'open'},
+          {id: uid(), task:'Progress work on new IHC markers and analysis', owner:'Anjana', dueDate:'', status:'open'}
+        ]
+      }
+    ]
+  };
+}
+
+function render(){
+  root.innerHTML = '';
+  if(state.loading){
+    root.appendChild(el('div',{class:'gate'},[el('p',{},['Loading…'])]));
+    return;
+  }
+  if(state.loadError){
+    root.appendChild(renderError());
+    return;
+  }
+  if(!state.userName){
+    root.appendChild(renderGate());
+    return;
+  }
+  root.appendChild(renderApp());
+}
+
+function renderError(){
+  return el('div',{class:'gate'},[
+    el('h1',{},['Cannot reach the workspace server']),
+    el('p',{},[state.loadError || 'The server may be offline. Make sure server.js is running.']),
+    el('button',{class:'new-btn',style:'display:inline-block;margin-top:6px;padding:9px 16px;',
+      onclick:()=>{ state.loadError=null; state.loading=true; render(); loadAll(); }},['Try again'])
+  ]);
+}
+
+function el(tag, attrs, children){
+  const e = document.createElement(tag);
+  attrs = attrs || {};
+  for(const k in attrs){
+    if(k === 'class') e.className = attrs[k];
+    else if(k.startsWith('on')) e.addEventListener(k.slice(2), attrs[k]);
+    else if(k === 'html') e.innerHTML = attrs[k];
+    else e.setAttribute(k, attrs[k]);
+  }
+  (children||[]).forEach(c=>{
+    if(c === null || c === undefined) return;
+    if(typeof c === 'string') e.appendChild(document.createTextNode(c));
+    else e.appendChild(c);
+  });
+  return e;
+}
+
+// ---------- storage (server-backed) ----------
+async function loadAll(){
+  state.loadError = null;
+  if(!TokenStore.get()){ state.loading = false; render(); return; }
+  try{
+    const res = await API.getData();
+    if(res.unauthorized){ state.userName = null; state.loading = false; render(); return; }
+    state.userName = res.name;
+    state.data = patchData(res.data);
+  }catch(e){
+    state.loadError = e.message || 'Could not reach the server.';
+  }
+  state.loading = false;
+  render();
+}
+
+async function saveData(){
+  if(!state.data) return;
+  try{ await API.saveData(state.data); }
+  catch(e){ console.error('save failed', e); }
+}
+
+async function login(username, password){
+  state.loadError = null;
+  let res;
+  try{ res = await API.login(username, password); }
+  catch(e){ state.loadError = 'Could not reach the server. Is server.js running?'; render(); return true; }
+  if(res && res.locked) return 'locked';
+  if(!res || !res.token) return false;
+  TokenStore.set(res.token);
+  state.userName = res.name;
+  try{
+    const d = await API.getData();
+    if(!d.unauthorized) state.data = patchData(d.data);
+  }catch(e){ state.loadError = e.message; }
+  state.activeTab = 'home';
+  render();
+  return true;
+}
+
+async function signUp(payload){
+  state.loadError = null;
+  let res;
+  try{ res = await API.signup(payload); }
+  catch(e){ return { error:'Could not reach the server. Please try again.' }; }
+  if(res.status === 429) return { error:'Too many attempts. Please wait 15 minutes and try again.' };
+  if(!res.ok || !res.token) return { error: res.error || 'Could not create the account.' };
+  TokenStore.set(res.token);
+  state.userName = res.name;
+  try{
+    const d = await API.getData();
+    if(!d.unauthorized) state.data = patchData(d.data);
+  }catch(e){ state.loadError = e.message; }
+  state.activeTab = 'home';
+  render();
+  return { ok:true };
+}
+
+async function signOut(){
+  TokenStore.set(null);
+  state.userName = null;
+  state.data = null;
+  state.activeMeetingId = null;
+  state.activeTab = 'home';
+  state.showNotif = false;
+  render();
+}
+
+// ---------- gate ----------
+function renderGate(){
+  return state.authMode === 'signup' ? renderSignupGate() : renderLoginGate();
+}
+
+function renderLoginGate(){
+  const userInput = el('input',{placeholder:'username', autocomplete:'username'});
+  const passInput = el('input',{type:'password', placeholder:'password', autocomplete:'current-password'});
+  const errEl = el('div',{class:'err'},['']);
+
+  async function submit(){
+    errEl.textContent = '';
+    const ok = await login(userInput.value, passInput.value);
+    if(ok === 'locked'){
+      errEl.textContent = 'Too many failed attempts. Please wait 15 minutes and try again.';
+      passInput.value = '';
+    } else if(!ok){
+      errEl.textContent = 'Incorrect username or password.';
+      passInput.value = '';
+      passInput.focus();
+    }
+  }
+  userInput.addEventListener('keydown',(e)=>{ if(e.key==='Enter') passInput.focus(); });
+  passInput.addEventListener('keydown',(e)=>{ if(e.key==='Enter') submit(); });
+
+  const gate = el('div',{class:'gate'},[
+    el('h1',{},['Multiple Sclerosis (HB38) Project Workspace']),
+    el('p',{},['Sign in to continue.']),
+    el('label',{},['Username']),
+    userInput,
+    el('label',{},['Password']),
+    passInput,
+    el('div',{},[ el('button',{class:'new-btn',style:'display:inline-block;margin-top:14px;padding:9px 16px;',onclick:submit},['Sign in']) ]),
+    errEl,
+    el('div',{class:'switch'},[
+      'New to the team? ',
+      el('a',{onclick:()=>{ state.authMode='signup'; render(); }},['Create an account'])
+    ])
+  ]);
+  setTimeout(()=>userInput.focus(), 0);
+  return gate;
+}
+
+function renderSignupGate(){
+  const nameInput = el('input',{placeholder:'e.g. Anjana', autocomplete:'name'});
+  const userInput = el('input',{placeholder:'lowercase, e.g. anjana', autocomplete:'username'});
+  const emailInput = el('input',{type:'email', placeholder:'you@example.com', autocomplete:'email'});
+  const passInput = el('input',{type:'password', placeholder:'at least 8 characters', autocomplete:'new-password'});
+  const codeInput = el('input',{placeholder:'ask the project admin', autocomplete:'off'});
+  const errEl = el('div',{class:'err'},['']);
+
+  async function submit(){
+    errEl.textContent = '';
+    const res = await signUp({
+      name: nameInput.value.trim(),
+      username: userInput.value.trim().toLowerCase(),
+      email: emailInput.value.trim(),
+      password: passInput.value,
+      code: codeInput.value
+    });
+    if(res && res.error){ errEl.textContent = res.error; }
+  }
+  // auto-suggest a username from the name
+  nameInput.addEventListener('input', ()=>{
+    if(!userInput.dataset.touched)
+      userInput.value = nameInput.value.trim().toLowerCase().replace(/[^a-z0-9_]+/g,'');
+  });
+  userInput.addEventListener('input', ()=>{ userInput.dataset.touched = '1'; });
+  passInput.addEventListener('keydown',(e)=>{ if(e.key==='Enter') submit(); });
+
+  const gate = el('div',{class:'gate'},[
+    el('h1',{},['Create your account']),
+    el('p',{},['Join the HB38 project workspace.']),
+    el('label',{},['Full name']),        nameInput,
+    el('label',{},['Username']),          userInput,
+    el('label',{},['Email (for task & deadline alerts)']), emailInput,
+    el('label',{},['Password']),          passInput,
+    el('label',{},['Team access code']),  codeInput,
+    el('div',{},[ el('button',{class:'new-btn',style:'display:inline-block;margin-top:14px;padding:9px 16px;',onclick:submit},['Create account']) ]),
+    errEl,
+    el('div',{class:'switch'},[
+      'Already have an account? ',
+      el('a',{onclick:()=>{ state.authMode='login'; render(); }},['Sign in'])
+    ])
+  ]);
+  setTimeout(()=>nameInput.focus(), 0);
+  return gate;
+}
+
+// ---------- app shell ----------
+function renderApp(){
+  const wrap = el('div',{class:'app'});
+  wrap.appendChild(renderSidebar());
+  wrap.appendChild(renderMain());
+  return wrap;
+}
+
+function myAlerts(){
+  const today = todayStr();
+  const soon  = new Date(Date.now() + 3*86400000).toISOString().slice(0,10);
+  return allActionItems()
+    .filter(x => x.ai.owner === state.userName && x.ai.status !== 'done' && x.ai.dueDate && x.ai.dueDate <= soon)
+    .map(x => ({ ai:x.ai, meeting:x.meeting, overdue: x.ai.dueDate < today }))
+    .sort((a,b)=> a.ai.dueDate.localeCompare(b.ai.dueDate));
+}
+
+function renderNotifPanel(alerts){
+  const p = el('div',{class:'notif-panel'});
+  p.appendChild(el('h4',{},['Your deadlines (next 3 days)']));
+  if(!alerts.length){
+    p.appendChild(el('div',{class:'notif-empty'},['Nothing due soon. All clear. 🎉']));
+    return p;
+  }
+  alerts.forEach(({ai,meeting,overdue})=>{
+    p.appendChild(el('div',{class:'notif-item', onclick:()=>{
+      state.activeTab='minutes'; state.activeMeetingId=meeting.id; state.showNotif=false; render();
+    }},[
+      el('div',{},[ai.task]),
+      el('span',{class:'ai-due ' + (overdue?'overdue':'pending'), style:'display:inline-block;margin-top:5px;'},
+        [(overdue ? 'Overdue · ' : 'Due ') + formatDate(ai.dueDate)])
+    ]));
+  });
+  return p;
+}
+
+function renderSidebar(){
+  const sb = el('div',{class:'sidebar'});
+  const alerts = myAlerts();
+  const head = el('div',{class:'sidebar-head'});
+  const topRow = el('div',{style:'display:flex;align-items:flex-start;gap:10px;'});
+  topRow.appendChild(el('h1',{style:'flex:1;'},['Multiple Sclerosis (HB38) Project Workspace']));
+  const bell = el('div',{class:'bell', title:'Notifications', onclick:()=>{ state.showNotif=!state.showNotif; render(); }},['🔔']);
+  if(alerts.length) bell.appendChild(el('span',{class:'dot'},[String(alerts.length)]));
+  topRow.appendChild(bell);
+  head.appendChild(topRow);
+  head.appendChild(el('div',{class:'who'},['Signed in as ' + state.userName]));
+  head.appendChild(el('span',{class:'signout', onclick:signOut},['Sign out']));
+  sb.appendChild(head);
+  if(state.showNotif) sb.appendChild(renderNotifPanel(alerts));
+  const TABS = [
+    ['home','Home'], ['mytasks','My tasks'], ['minutes','Minutes'],
+    ['actions','Action items'], ['timeline','Timeline'],
+    ['literature','Literature'], ['resources','Resources']
+  ];
+  const tabsWrap = el('div',{class:'tabs'});
+  TABS.forEach(function(t){
+    tabsWrap.appendChild(el('div',{
+      class:'tab' + (state.activeTab===t[0]?' active':''),
+      onclick:()=>{ state.activeTab=t[0]; render(); }
+    },[t[1]]));
+  });
+  sb.appendChild(tabsWrap);
+
+  if(state.activeTab === 'minutes'){
+    sb.appendChild(el('div',{class:'new-btn', onclick:newMeeting},['+ New meeting minutes']));
+    const list = el('div',{class:'meeting-list'});
+    const meetings = [...state.data.meetings].sort((a,b)=> b.date.localeCompare(a.date));
+    if(meetings.length === 0){
+      list.appendChild(el('div',{style:'padding:20px;color:var(--ink-light);font-size:13px;'},['No meetings yet. Add your first one above.']));
+    }
+    meetings.forEach(m=>{
+      const openCount = m.actionItems.filter(a=>a.status!=='done').length;
+      list.appendChild(el('div',{
+        class:'meeting-item' + (m.id===state.activeMeetingId?' active':''),
+        onclick:()=>{ state.activeMeetingId = m.id; render(); }
+      },[
+        el('div',{class:'d'},[formatDate(m.date)]),
+        el('div',{class:'t'},[m.title || 'Untitled meeting']),
+        el('div',{class:'cnt'},[openCount + (openCount===1?' open action item':' open action items')])
+      ]));
+    });
+    sb.appendChild(list);
+  }
+  return sb;
+}
+
+function formatDate(d){
+  if(!d) return '';
+  const dt = new Date(d + 'T00:00:00');
+  return dt.toLocaleDateString(undefined,{month:'short', day:'numeric', year:'numeric'});
+}
+
+function newMeeting(){
+  const m = {
+    id: uid(),
+    date: todayStr(),
+    title: 'Weekly sync — ' + formatDate(todayStr()),
+    attendees: state.userName,
+    notes: '',
+    actionItems: []
+  };
+  state.data.meetings.push(m);
+  state.activeMeetingId = m.id;
+  state.activeTab = 'minutes';
+  saveData();
+  render();
+}
+
+function renderMain(){
+  const main = el('div',{class:'main'});
+  if(state.activeTab === 'home'){
+    main.appendChild(renderHome());
+    return main;
+  }
+  if(state.activeTab === 'mytasks'){
+    main.appendChild(renderMyTasks());
+    return main;
+  }
+  if(state.activeTab === 'timeline'){
+    main.appendChild(renderTimeline());
+    return main;
+  }
+  if(state.activeTab === 'actions'){
+    main.appendChild(renderActionsOverview());
+    return main;
+  }
+  if(state.activeTab === 'literature'){
+    main.appendChild(renderLiteratureSection());
+    return main;
+  }
+  if(state.activeTab === 'resources'){
+    main.appendChild(renderResourcesSection());
+    return main;
+  }
+  const meeting = state.data.meetings.find(m=>m.id===state.activeMeetingId);
+  if(!meeting){
+    main.appendChild(el('div',{class:'empty'},['Select a meeting on the left, or start a new one.']));
+    return main;
+  }
+  main.appendChild(renderMeetingDetail(meeting));
+  return main;
+}
+
+function renderMeetingDetail(m){
+  const wrap = el('div',{});
+
+  const titleInput = el('input',{class:'title-input', value:m.title});
+  titleInput.addEventListener('input', ()=>{ m.title = titleInput.value; });
+  titleInput.addEventListener('blur', saveData);
+  wrap.appendChild(titleInput);
+
+  const row = el('div',{class:'mrow'});
+  const dateField = el('div',{class:'field'},[
+    el('label',{},['Date']),
+    (()=>{ const i = el('input',{type:'date', value:m.date}); i.addEventListener('change',()=>{m.date=i.value; saveData(); render();}); return i; })()
+  ]);
+  const attField = el('div',{class:'field'},[
+    el('label',{},['Attendees']),
+    (()=>{ const i = el('input',{type:'text', value:m.attendees||'', placeholder:'e.g. Priya, Arjun, Dev, Meena'}); i.addEventListener('input',()=>{m.attendees=i.value;}); i.addEventListener('blur',saveData); return i; })()
+  ]);
+  row.appendChild(dateField); row.appendChild(attField);
+  wrap.appendChild(row);
+
+  wrap.appendChild(el('div',{class:'section-label'},['Minutes']));
+  const notes = el('textarea',{class:'notes', placeholder:'Paste or type the minutes of meeting here…'}, []);
+  notes.value = m.notes || '';
+  notes.addEventListener('input', ()=>{ m.notes = notes.value; });
+  notes.addEventListener('blur', saveData);
+  wrap.appendChild(notes);
+
+  wrap.appendChild(el('div',{class:'section-label'},['Action items from this meeting']));
+  const list = el('div',{});
+  m.actionItems.forEach(ai=>list.appendChild(renderActionItemRow(m, ai)));
+  wrap.appendChild(list);
+
+  wrap.appendChild(renderAddActionItem(m));
+
+  const del = el('span',{class:'del-meeting', onclick:()=>{
+    if(confirm('Delete these minutes and their action items?')){
+      state.data.meetings = state.data.meetings.filter(x=>x.id!==m.id);
+      state.activeMeetingId = null;
+      saveData(); render();
+    }
+  }},['Delete these minutes']);
+  wrap.appendChild(del);
+
+  return wrap;
+}
+
+function dueClass(ai){
+  if(ai.status==='done') return 'done';
+  if(ai.dueDate && ai.dueDate < todayStr()) return 'overdue';
+  return 'pending';
+}
+
+// ---------- file attachments ----------
+function fileHref(att, dl){
+  return '/api/file/' + att.id + '?t=' + encodeURIComponent(TokenStore.get()||'') + (dl ? '&dl=1' : '');
+}
+
+function attachButton(item){
+  const btn = el('button',{class:'attach-btn'},['📎 Attach file']);
+  btn.addEventListener('click', ()=>{
+    const inp = el('input',{type:'file'});
+    inp.style.display = 'none';
+    document.body.appendChild(inp);
+    inp.addEventListener('change', async ()=>{
+      const f = inp.files && inp.files[0];
+      document.body.removeChild(inp);
+      if(!f) return;
+      btn.textContent = 'Uploading…'; btn.disabled = true;
+      try{
+        const meta = await API.uploadFile(f);
+        if(!Array.isArray(item.attachments)) item.attachments = [];
+        item.attachments.push({ id:meta.id, name:meta.name, size:meta.size });
+        saveData(); render();
+      }catch(e){
+        btn.textContent = '📎 Attach file'; btn.disabled = false;
+        alert('Upload failed: ' + e.message);
+      }
+    });
+    inp.click();
+  });
+  return btn;
+}
+
+function renderAttachments(item, opts){
+  opts = opts || {};
+  const list = item.attachments || [];
+  if(opts.noAdd && list.length === 0) return null;   // nothing to show in read-only views
+  const wrap = el('div',{class:'attach-wrap'});
+  list.forEach(att=>{
+    const chip = el('span',{class:'attach-chip'},[
+      el('a',{href:fileHref(att), target:'_blank', rel:'noopener', title:att.name},[att.name])
+    ]);
+    if(!opts.noAdd){
+      chip.appendChild(el('span',{class:'x', title:'Remove', onclick:()=>{
+        if(!confirm('Remove "' + att.name + '"? (It stays until you save.)')) return;
+        item.attachments = (item.attachments||[]).filter(a=>a.id!==att.id);
+        saveData(); render();
+      }},['✕']));
+    }
+    wrap.appendChild(chip);
+  });
+  if(!opts.noAdd) wrap.appendChild(attachButton(item));
+  return wrap;
+}
+
+function renderActionItemRow(meeting, ai){
+  const holder = el('div',{});
+  const row = el('div',{class:'ai-row'});
+  const check = el('div',{class:'ai-check' + (ai.status==='done'?' done':''), onclick:()=>{
+    ai.status = ai.status==='done' ? 'open' : 'done';
+    saveData(); render();
+  }}, [ai.status==='done' ? '✓' : '']);
+  row.appendChild(check);
+  const taskCell = el('div',{style:'flex:1;min-width:0;'},[
+    el('div',{class:'ai-task' + (ai.status==='done'?' done':'')},[ai.task]),
+    renderAttachments(ai)
+  ]);
+  row.appendChild(taskCell);
+  const meta = el('div',{class:'ai-meta'});
+  if(ai.owner) meta.appendChild(el('span',{class:'ai-owner'},[ai.owner]));
+  if(ai.dueDate) meta.appendChild(el('span',{class:'ai-due ' + dueClass(ai)},[formatDate(ai.dueDate)]));
+  meta.appendChild(el('span',{class:'ai-del', onclick:()=>{
+    meeting.actionItems = meeting.actionItems.filter(x=>x.id!==ai.id);
+    saveData(); render();
+  }},['✕']));
+  row.appendChild(meta);
+  holder.appendChild(row);
+  return holder;
+}
+
+function renderAddActionItem(meeting){
+  const wrap = el('div',{class:'add-ai'});
+  const taskInput = el('input',{type:'text', placeholder:'New action item…'});
+  const ownerSelect = el('select',{});
+  ownerSelect.appendChild(el('option',{value:''},['Assign to…']));
+  (state.data.members.length ? state.data.members : [state.userName]).forEach(mem=>{
+    ownerSelect.appendChild(el('option',{value:mem},[mem]));
+  });
+  const dueInput = el('input',{type:'date'});
+  const addBtn = el('button',{onclick:()=>{
+    if(!taskInput.value.trim()) return;
+    meeting.actionItems.push({
+      id: uid(),
+      task: taskInput.value.trim(),
+      owner: ownerSelect.value,
+      dueDate: dueInput.value,
+      status: 'open'
+    });
+    saveData();
+    render();
+  }},['Add']);
+  wrap.appendChild(taskInput); wrap.appendChild(ownerSelect); wrap.appendChild(dueInput); wrap.appendChild(addBtn);
+  return wrap;
+}
+
+// ---------- shared: collect all action items ----------
+function allActionItems(){
+  const out = [];
+  state.data.meetings.forEach(m=>{
+    (m.actionItems||[]).forEach(ai=>out.push({ ai, meeting:m }));
+  });
+  return out;
+}
+
+function taskRow(ai, meeting){
+  const row = el('div',{class:'ov-row'});
+  const check = el('div',{class:'ai-check' + (ai.status==='done'?' done':''), onclick:()=>{
+    ai.status = ai.status==='done' ? 'open' : 'done';
+    saveData(); render();
+  }}, [ai.status==='done' ? '✓' : '']);
+  row.appendChild(check);
+  const mid = el('div',{style:'flex:1;min-width:0;'},[
+    el('div',{class:'ai-task' + (ai.status==='done'?' done':'')},[ai.task]),
+    el('div',{class:'src'},['From: ' + (meeting.title || 'Untitled') + ' · ' + formatDate(meeting.date)]),
+    renderAttachments(ai, {noAdd:true})
+  ]);
+  row.appendChild(mid);
+  const meta = el('div',{class:'ai-meta'});
+  if(ai.owner) meta.appendChild(el('span',{class:'ai-owner'},[ai.owner]));
+  if(ai.dueDate) meta.appendChild(el('span',{class:'ai-due ' + dueClass(ai)},[formatDate(ai.dueDate)]));
+  row.appendChild(meta);
+  return row;
+}
+
+// ---------- Home / overview ----------
+function renderHome(){
+  const wrap = el('div',{});
+  wrap.appendChild(el('div',{class:'hello'},['Welcome, ' + state.userName]));
+  wrap.appendChild(el('div',{style:'color:var(--ink-light);margin:0 0 18px;'},
+    ['Here’s where the HB38 project stands today.']));
+
+  const all      = allActionItems();
+  const mineOpen = all.filter(x=>x.ai.owner===state.userName && x.ai.status!=='done');
+  const teamOpen = all.filter(x=>x.ai.status!=='done');
+  const overdue  = teamOpen.filter(x=>x.ai.dueDate && x.ai.dueDate < todayStr());
+  const doneCnt  = all.filter(x=>x.ai.status==='done').length;
+
+  const cards = el('div',{class:'cards'});
+  cards.appendChild(el('div',{class:'card click', onclick:()=>{state.activeTab='mytasks';render();}},[
+    el('div',{class:'num'},[String(mineOpen.length)]), el('div',{class:'lbl'},['Your open tasks'])
+  ]));
+  cards.appendChild(el('div',{class:'card click', onclick:()=>{state.activeTab='actions';render();}},[
+    el('div',{class:'num'},[String(teamOpen.length)]), el('div',{class:'lbl'},['Team open tasks'])
+  ]));
+  cards.appendChild(el('div',{class:'card warn'},[
+    el('div',{class:'num'},[String(overdue.length)]), el('div',{class:'lbl'},['Overdue (team)'])
+  ]));
+  cards.appendChild(el('div',{class:'card good'},[
+    el('div',{class:'num'},[String(doneCnt)]), el('div',{class:'lbl'},['Completed'])
+  ]));
+  wrap.appendChild(cards);
+
+  // upcoming (or most recent) meeting
+  const meetings = [...state.data.meetings].sort((a,b)=>a.date.localeCompare(b.date));
+  const future   = meetings.filter(m=>m.date >= todayStr());
+  const nextM    = future.length ? future[0] : (meetings.length ? meetings[meetings.length-1] : null);
+  if(nextM){
+    wrap.appendChild(el('div',{class:'section-label'},[future.length ? 'Upcoming meeting' : 'Most recent meeting']));
+    wrap.appendChild(el('div',{class:'card', style:'cursor:pointer;', onclick:()=>{
+      state.activeTab='minutes'; state.activeMeetingId=nextM.id; render();
+    }},[
+      el('div',{class:'tl-date'},[formatDate(nextM.date)]),
+      el('div',{class:'tl-title'},[nextM.title || 'Untitled meeting']),
+      nextM.attendees ? el('div',{class:'tl-sub'},['Attendees: ' + nextM.attendees]) : null
+    ]));
+  }
+
+  // your tasks preview
+  wrap.appendChild(el('div',{class:'section-label'},['Your tasks']));
+  if(mineOpen.length === 0){
+    wrap.appendChild(el('div',{style:'color:var(--ink-light);'},['You have no open action items. 🎉']));
+  } else {
+    const sorted = [...mineOpen].sort((a,b)=>(a.ai.dueDate||'9999').localeCompare(b.ai.dueDate||'9999'));
+    const list = el('div',{});
+    sorted.slice(0,6).forEach(({ai,meeting})=>list.appendChild(taskRow(ai,meeting)));
+    wrap.appendChild(list);
+    if(sorted.length > 6){
+      wrap.appendChild(el('span',{class:'signout', style:'color:var(--ink);margin-top:12px;',
+        onclick:()=>{state.activeTab='mytasks';render();}},['View all ' + sorted.length + ' of your tasks →']));
+    }
+  }
+  return wrap;
+}
+
+// ---------- My tasks ----------
+function renderMyTasks(){
+  const wrap = el('div',{});
+  wrap.appendChild(el('div',{class:'section-label', style:'margin-top:0;'},['My tasks — ' + state.userName]));
+
+  const mine = allActionItems().filter(x=>x.ai.owner===state.userName);
+  if(mine.length === 0){
+    wrap.appendChild(el('div',{class:'empty', style:'margin-top:40px;'},
+      ['Nothing is assigned to you yet. Assign yourself action items from the Minutes or Action items tabs.']));
+    return wrap;
+  }
+  const open = mine.filter(x=>x.ai.status!=='done').sort((a,b)=>(a.ai.dueDate||'9999').localeCompare(b.ai.dueDate||'9999'));
+  const done = mine.filter(x=>x.ai.status==='done');
+
+  wrap.appendChild(el('div',{class:'section-label'},['Open (' + open.length + ')']));
+  const og = el('div',{});
+  if(open.length === 0) og.appendChild(el('div',{style:'color:var(--ink-light);'},['No open tasks — all caught up.']));
+  open.forEach(({ai,meeting})=>og.appendChild(taskRow(ai,meeting)));
+  wrap.appendChild(og);
+
+  if(done.length){
+    wrap.appendChild(el('div',{class:'section-label'},['Completed (' + done.length + ')']));
+    const dg = el('div',{});
+    done.forEach(({ai,meeting})=>dg.appendChild(taskRow(ai,meeting)));
+    wrap.appendChild(dg);
+  }
+  return wrap;
+}
+
+// ---------- Timeline ----------
+function renderTimeline(){
+  const wrap = el('div',{});
+  wrap.appendChild(el('div',{class:'section-label', style:'margin-top:0;'},['Project timeline']));
+  wrap.appendChild(el('div',{style:'color:var(--ink-light);font-size:13px;margin:-4px 0 18px;'},
+    ['Meetings and action-item deadlines in date order. A data-driven GM/WM damage-trajectory chart can be added here once lesion measurements are entered.']));
+
+  const events = [];
+  state.data.meetings.forEach(m=>{
+    events.push({ date:m.date, type:'meeting', title:m.title||'Untitled meeting',
+      sub: m.attendees ? 'Attendees: '+m.attendees : '', id:m.id });
+    (m.actionItems||[]).forEach(ai=>{
+      if(ai.dueDate){
+        const t = (ai.status!=='done' && ai.dueDate < todayStr()) ? 'overdue' : 'due';
+        events.push({ date:ai.dueDate, type:t, title:ai.task,
+          sub: (ai.owner || 'Unassigned') + (ai.status==='done' ? ' · done' : '') });
+      }
+    });
+  });
+
+  if(events.length === 0){
+    wrap.appendChild(el('div',{class:'empty'},['Nothing to show yet.']));
+    return wrap;
+  }
+  events.sort((a,b)=>a.date.localeCompare(b.date));
+
+  const tl = el('div',{class:'tl'});
+  events.forEach(ev=>{
+    const item = el('div',{class:'tl-item ' + ev.type});
+    item.appendChild(el('div',{class:'tl-date'},[
+      formatDate(ev.date) + (ev.type==='meeting' ? ' · Meeting' : ' · Due')
+    ]));
+    const title = ev.type==='meeting'
+      ? el('div',{class:'tl-title', style:'cursor:pointer;', onclick:()=>{
+          state.activeTab='minutes'; state.activeMeetingId=ev.id; render();
+        }},[ev.title])
+      : el('div',{class:'tl-title'},[ev.title]);
+    item.appendChild(title);
+    if(ev.sub) item.appendChild(el('div',{class:'tl-sub'},[ev.sub]));
+    tl.appendChild(item);
+  });
+  wrap.appendChild(tl);
+  return wrap;
+}
+
+// ---------- overview ----------
+function renderActionsOverview(){
+  const wrap = el('div',{});
+  wrap.appendChild(el('div',{class:'section-label', style:'margin-top:0;'},['All action items']));
+
+  const filters = el('div',{class:'overview-filters'});
+  const ownerSel = el('select',{});
+  ownerSel.appendChild(el('option',{value:'all'},['All owners']));
+  state.data.members.forEach(mem=>ownerSel.appendChild(el('option',{value:mem, selected: state.ovOwnerFilter===mem ? 'selected':null},[mem])));
+  ownerSel.value = state.ovOwnerFilter;
+  ownerSel.addEventListener('change', ()=>{ state.ovOwnerFilter = ownerSel.value; render(); });
+
+  const statusSel = el('select',{});
+  [['open','Open'],['done','Completed'],['all','All']].forEach(([v,l])=>{
+    statusSel.appendChild(el('option',{value:v},[l]));
+  });
+  statusSel.value = state.ovStatusFilter;
+  statusSel.addEventListener('change', ()=>{ state.ovStatusFilter = statusSel.value; render(); });
+
+  filters.appendChild(ownerSel); filters.appendChild(statusSel);
+  wrap.appendChild(filters);
+
+  let items = [];
+  state.data.meetings.forEach(m=>{
+    m.actionItems.forEach(ai=>{
+      items.push({ai, meeting:m});
+    });
+  });
+  if(state.ovOwnerFilter !== 'all') items = items.filter(x=>x.ai.owner === state.ovOwnerFilter);
+  if(state.ovStatusFilter !== 'all') items = items.filter(x=> state.ovStatusFilter==='done' ? x.ai.status==='done' : x.ai.status!=='done');
+
+  items.sort((a,b)=>{
+    const da = a.ai.dueDate || '9999';
+    const db = b.ai.dueDate || '9999';
+    return da.localeCompare(db);
+  });
+
+  if(items.length === 0){
+    wrap.appendChild(el('div',{class:'empty', style:'margin-top:40px;'},['Nothing here.']));
+    return wrap;
+  }
+
+  const group = el('div',{class:'ov-group'});
+  items.forEach(({ai, meeting})=>{
+    const row = el('div',{class:'ov-row'});
+    const check = el('div',{class:'ai-check' + (ai.status==='done'?' done':''), onclick:()=>{
+      ai.status = ai.status==='done' ? 'open' : 'done';
+      saveData(); render();
+    }}, [ai.status==='done' ? '✓' : '']);
+    row.appendChild(check);
+    const mid = el('div',{style:'flex:1;'},[
+      el('div',{class:'ai-task' + (ai.status==='done'?' done':'')},[ai.task]),
+      el('div',{class:'src'},['From: ' + (meeting.title || 'Untitled') + ' · ' + formatDate(meeting.date)])
+    ]);
+    row.appendChild(mid);
+    const meta = el('div',{class:'ai-meta'});
+    if(ai.owner) meta.appendChild(el('span',{class:'ai-owner'},[ai.owner]));
+    if(ai.dueDate) meta.appendChild(el('span',{class:'ai-due ' + dueClass(ai)},[formatDate(ai.dueDate)]));
+    row.appendChild(meta);
+    group.appendChild(row);
+  });
+  wrap.appendChild(group);
+  return wrap;
+}
+
+// ---------- shared helper: group by category ----------
+function groupByCategory(items){
+  const groups = {};
+  items.forEach(it=>{
+    const cat = (it.category || '').trim() || 'Uncategorized';
+    if(!groups[cat]) groups[cat] = [];
+    groups[cat].push(it);
+  });
+  const names = Object.keys(groups).sort((a,b)=>{
+    if(a==='Uncategorized') return 1;
+    if(b==='Uncategorized') return -1;
+    return a.localeCompare(b);
+  });
+  return names.map(name=>({ name, items: groups[name] }));
+}
+
+function normalizeLink(url){
+  if(!url) return '';
+  if(!/^https?:\/\//i.test(url)) return 'https://' + url;
+  return url;
+}
+
+// ---------- Literature ----------
+function renderLiteratureSection(){
+  const wrap = el('div',{});
+  wrap.appendChild(el('div',{class:'section-label', style:'margin-top:0;'},['Literature & references']));
+  wrap.appendChild(el('div',{style:'color:var(--ink-light);font-size:13px;margin:-4px 0 20px;'},
+    ['Papers and references the team is using. Add a category to group entries — headers are created automatically as you use them.']));
+
+  wrap.appendChild(renderLiteratureAddForm());
+
+  const items = state.data.literature;
+  if(items.length === 0){
+    wrap.appendChild(el('div',{class:'empty', style:'margin-top:30px;'},['No references added yet.']));
+    return wrap;
+  }
+  groupByCategory(items).forEach(group=>{
+    const catWrap = el('div',{class:'lib-cat'});
+    catWrap.appendChild(el('h3',{},[group.name]));
+    group.items.forEach(lit=>catWrap.appendChild(renderLiteratureRow(lit)));
+    wrap.appendChild(catWrap);
+  });
+  return wrap;
+}
+
+function renderLiteratureRow(lit){
+  const row = el('div',{class:'lib-row'});
+  const main = el('div',{class:'lib-main'});
+  const titleEl = lit.link
+    ? el('div',{class:'lib-title'},[ el('a',{href:normalizeLink(lit.link), target:'_blank', rel:'noopener'},[lit.title]) ])
+    : el('div',{class:'lib-title'},[lit.title]);
+  main.appendChild(titleEl);
+  const subParts = [];
+  if(lit.authors) subParts.push(lit.authors);
+  if(lit.year) subParts.push(lit.year);
+  if(subParts.length) main.appendChild(el('div',{class:'lib-sub'},[subParts.join(' · ')]));
+  if(lit.notes) main.appendChild(el('div',{class:'lib-notes'},[lit.notes]));
+  main.appendChild(renderAttachments(lit));
+  row.appendChild(main);
+  row.appendChild(el('span',{class:'lib-del', onclick:()=>{
+    state.data.literature = state.data.literature.filter(x=>x.id!==lit.id);
+    saveData(); render();
+  }},['✕']));
+  return row;
+}
+
+function renderLiteratureAddForm(){
+  const box = el('div',{class:'lib-add'});
+  box.appendChild(el('div',{class:'lib-add-title'},['Add a reference']));
+
+  const row1 = el('div',{class:'mrow'});
+  const titleIn = el('input',{type:'text', placeholder:'Paper title'});
+  const linkIn = el('input',{type:'text', placeholder:'Link (DOI / URL)'});
+  row1.appendChild(el('div',{class:'field'},[el('label',{},['Title']), titleIn]));
+  row1.appendChild(el('div',{class:'field'},[el('label',{},['Link']), linkIn]));
+  box.appendChild(row1);
+
+  const row2 = el('div',{class:'mrow'});
+  const authorsIn = el('input',{type:'text', placeholder:'e.g. Kuhlmann et al.'});
+  const yearIn = el('input',{type:'text', placeholder:'e.g. 2023'});
+  const catIn = el('input',{type:'text', placeholder:'e.g. Lesion classification'});
+  row2.appendChild(el('div',{class:'field'},[el('label',{},['Authors']), authorsIn]));
+  row2.appendChild(el('div',{class:'field', style:'max-width:110px;'},[el('label',{},['Year']), yearIn]));
+  row2.appendChild(el('div',{class:'field'},[el('label',{},['Category']), catIn]));
+  box.appendChild(row2);
+
+  const row3 = el('div',{class:'mrow'});
+  const notesIn = el('input',{type:'text', placeholder:'Short note on relevance (optional)'});
+  row3.appendChild(el('div',{class:'field'},[el('label',{},['Notes']), notesIn]));
+  box.appendChild(row3);
+
+  const addBtn = el('button',{class:'new-btn', style:'margin:0;display:inline-block;padding:8px 16px;', onclick:()=>{
+    if(!titleIn.value.trim()) return;
+    state.data.literature.push({
+      id: uid(),
+      title: titleIn.value.trim(),
+      link: linkIn.value.trim(),
+      authors: authorsIn.value.trim(),
+      year: yearIn.value.trim(),
+      category: catIn.value.trim(),
+      notes: notesIn.value.trim()
+    });
+    saveData(); render();
+  }},['Add reference']);
+  box.appendChild(addBtn);
+  return box;
+}
+
+// ---------- Resources ----------
+function renderResourcesSection(){
+  const wrap = el('div',{});
+  wrap.appendChild(el('div',{class:'section-label', style:'margin-top:0;'},['Resources']));
+  wrap.appendChild(el('div',{style:'color:var(--ink-light);font-size:13px;margin:-4px 0 20px;'},
+    ['Google Sheets, Docs, and other files the team is using. Add a category to group them by area of the project.']));
+
+  wrap.appendChild(renderResourceAddForm());
+
+  const items = state.data.resources;
+  if(items.length === 0){
+    wrap.appendChild(el('div',{class:'empty', style:'margin-top:30px;'},['No resources added yet.']));
+    return wrap;
+  }
+  groupByCategory(items).forEach(group=>{
+    const catWrap = el('div',{class:'lib-cat'});
+    catWrap.appendChild(el('h3',{},[group.name]));
+    group.items.forEach(res=>catWrap.appendChild(renderResourceRow(res)));
+    wrap.appendChild(catWrap);
+  });
+  return wrap;
+}
+
+function renderResourceRow(res){
+  const row = el('div',{class:'lib-row'});
+  if(res.type) row.appendChild(el('span',{class:'lib-tag'},[res.type]));
+  const main = el('div',{class:'lib-main'});
+  const titleEl = res.link
+    ? el('div',{class:'lib-title'},[ el('a',{href:normalizeLink(res.link), target:'_blank', rel:'noopener'},[res.title]) ])
+    : el('div',{class:'lib-title'},[res.title]);
+  main.appendChild(titleEl);
+  if(res.notes) main.appendChild(el('div',{class:'lib-notes'},[res.notes]));
+  main.appendChild(renderAttachments(res));
+  row.appendChild(main);
+  row.appendChild(el('span',{class:'lib-del', onclick:()=>{
+    state.data.resources = state.data.resources.filter(x=>x.id!==res.id);
+    saveData(); render();
+  }},['✕']));
+  return row;
+}
+
+function renderResourceAddForm(){
+  const box = el('div',{class:'lib-add'});
+  box.appendChild(el('div',{class:'lib-add-title'},['Add a resource']));
+
+  const row1 = el('div',{class:'mrow'});
+  const titleIn = el('input',{type:'text', placeholder:'e.g. 535 Histology Reconstruction'});
+  const typeSel = el('select',{});
+  ['Google Sheet','Google Doc','Google Slides','File','Other'].forEach(t=>typeSel.appendChild(el('option',{value:t},[t])));
+  row1.appendChild(el('div',{class:'field'},[el('label',{},['Name']), titleIn]));
+  row1.appendChild(el('div',{class:'field', style:'max-width:160px;'},[el('label',{},['Type']), typeSel]));
+  box.appendChild(row1);
+
+  const row2 = el('div',{class:'mrow'});
+  const linkIn = el('input',{type:'text', placeholder:'Link to the sheet/doc/file'});
+  const catIn = el('input',{type:'text', placeholder:'e.g. Registration & stacking'});
+  row2.appendChild(el('div',{class:'field'},[el('label',{},['Link']), linkIn]));
+  row2.appendChild(el('div',{class:'field'},[el('label',{},['Category']), catIn]));
+  box.appendChild(row2);
+
+  const row3 = el('div',{class:'mrow'});
+  const notesIn = el('input',{type:'text', placeholder:'Short note on what it contains (optional)'});
+  row3.appendChild(el('div',{class:'field'},[el('label',{},['Notes']), notesIn]));
+  box.appendChild(row3);
+
+  const addBtn = el('button',{class:'new-btn', style:'margin:0;display:inline-block;padding:8px 16px;', onclick:()=>{
+    if(!titleIn.value.trim()) return;
+    state.data.resources.push({
+      id: uid(),
+      title: titleIn.value.trim(),
+      type: typeSel.value,
+      link: linkIn.value.trim(),
+      category: catIn.value.trim(),
+      notes: notesIn.value.trim()
+    });
+    saveData(); render();
+  }},['Add resource']);
+  box.appendChild(addBtn);
+  return box;
+}
+
+loadAll().catch(function(err){
+  // Never leave a blank screen: if loading fails, still show the login.
+  console.error('load failed', err);
+  state.loading = false;
+  if(!state.data) state.data = seedData();
+  render();
+});
+})();
+/*
+  ------------------------------------------------------------------
+  HOW THIS RUNS
+  ------------------------------------------------------------------
+  This page talks to a small backend (server.js). Passwords are
+  hashed on the server, and ALL workspace data is stored on the
+  server (data.json), so the 4 accounts share ONE workspace.
+
+  Start it with:   node server.js
+  Then open:       http://localhost:8000/
+  Change a pw:     node server.js set-password <username> <newpw>
+
+  Note: saving is last-write-wins on the whole workspace. Fine for a
+  small team; if two people edit the very same item at the same
+  second, the last save wins. Refresh to pull the latest.
+  ------------------------------------------------------------------
+*/
+</script>
+</body>
+</html>

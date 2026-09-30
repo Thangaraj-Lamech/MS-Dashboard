@@ -1,0 +1,32 @@
+# Fly.io config for the MS (HB38) Workspace.
+# App name must be globally unique — if "ms-hb38" is taken we'll pick another.
+app = "ms-hb38"
+primary_region = "bom"          # Mumbai — closest Fly region to the team
+
+[build]
+
+[env]
+  DATA_DIR = "/data"
+  PORT = "8080"
+  APP_URL = "https://ms-hb38.fly.dev"
+  MAIL_FROM = "brainsgbc@gmail.com"
+  MAIL_FROM_NAME = "MS HB38 Workspace"
+
+# Persistent disk — this is what keeps data.json, users.json and uploads
+# across restarts and redeploys.
+[mounts]
+  source = "ms_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Keep one machine always running so the daily deadline-reminder emails fire
+  # even when nobody has the site open.
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
