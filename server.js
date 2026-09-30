@@ -41,16 +41,20 @@ const USERS_FILE  = path.join(DATA_DIR, 'users.json');
 const SECRET_FILE = path.join(DATA_DIR, 'secret.key');
 const UPLOAD_DIR  = path.join(DATA_DIR, 'uploads');
 
-/* ---- email / signup / app config (all via env; safe defaults) ---- */
-const BREVO_API_KEY = process.env.BREVO_API_KEY || '';
-const MAIL_FROM     = process.env.MAIL_FROM     || 'brainsgbc@gmail.com';
-const MAIL_FROM_NAME= process.env.MAIL_FROM_NAME|| 'MS HB38 Workspace';
-const APP_URL       = process.env.APP_URL       || 'https://ms-hb38.onrender.com';
+/* ---- email / signup / app config (all via env; safe defaults) ----
+   env() trims whitespace so a stray space pasted into a hosting
+   dashboard (a very common copy-paste slip) can't break startup. */
+const env = (k, d) => { const v = process.env[k]; return (v == null ? (d || '') : String(v)).trim(); };
+
+const BREVO_API_KEY = env('BREVO_API_KEY');
+const MAIL_FROM     = env('MAIL_FROM', 'brainsgbc@gmail.com');
+const MAIL_FROM_NAME= env('MAIL_FROM_NAME', 'MS HB38 Workspace');
+const APP_URL       = env('APP_URL', 'https://ms-hb38.onrender.com');
 // Optional shared code required to self-register. Empty string = open signup.
-const SIGNUP_CODE   = process.env.SIGNUP_CODE   || '';
+const SIGNUP_CODE   = env('SIGNUP_CODE');
 // Cloud database (Turso). When unset, the app uses local files instead.
-const TURSO_URL     = process.env.TURSO_URL   || process.env.TURSO_DATABASE_URL || '';
-const TURSO_TOKEN   = process.env.TURSO_TOKEN || process.env.TURSO_AUTH_TOKEN   || '';
+const TURSO_URL     = env('TURSO_URL')   || env('TURSO_DATABASE_URL');
+const TURSO_TOKEN   = env('TURSO_TOKEN') || env('TURSO_AUTH_TOKEN');
 
 /* ============================================================
    Storage backends. Both expose the same async interface:
